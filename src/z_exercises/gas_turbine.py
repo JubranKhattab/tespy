@@ -52,7 +52,7 @@ fuel_to_chamber.set_attr(
     }
 )
 # fuel_to_chamber.set_attr(p=Ref(comp_to_chamber, 1.00, 0))
-chamber.set_attr(pr=1, eta=1, ti=10e6)
+chamber.set_attr(pr=0.99, eta=1.0, ti=10e6)
 chamber_to_turbine.set_attr(T=1200)
 
 
