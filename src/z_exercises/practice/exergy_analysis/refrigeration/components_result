@@ -1,0 +1,11 @@
+|                          |   E_F in kW |   E_P in kW |   E_D in kW |   ε in % |   y_Dk in % |   y*_Dk in % |
+|:-------------------------|------------:|------------:|------------:|---------:|------------:|-------------:|
+| Air source               |         nan |         nan |         nan |      nan |         nan |          nan |
+| Water sink               |         nan |         nan |         nan |      nan |         nan |          nan |
+| Water source             |         nan |         nan |         nan |      nan |         nan |          nan |
+| Cooling heat exchanger   |       46.30 |       15.51 |       30.79 |     33.5 |         7.0 |          7.5 |
+| Compressor               |      815.29 |      674.08 |      141.21 |     82.7 |        32.1 |         34.3 |
+| Cycle closer             |         nan |         nan |         nan |      nan |         nan |          nan |
+| Air sink                 |         nan |         nan |         nan |      nan |         nan |          nan |
+| Turbine                  |      549.60 |      404.62 |      144.98 |     73.6 |        33.0 |         35.2 |
+| Heat sink heat exchanger |      107.31 |       12.07 |       95.24 |     11.2 |        21.7 |         23.1 |
