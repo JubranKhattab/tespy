@@ -178,7 +178,7 @@ def assess_elect_power(rankine_nw, turb, pump):
     )
     # base: definition of efficiency -> see docu
     # see difference between component value and bus value in results
-    # turbine: bus > component. mech to ele
+    # turbine: bus < component. mech to ele
     # pump: component > bus. ele to mech
 
     rankine_nw.add_busses(powergen)

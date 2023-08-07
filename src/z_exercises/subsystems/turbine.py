@@ -27,6 +27,7 @@ def main_func1():
         # solve
         turbine_nw.solve(mode='design')
         turbine_nw.print_results()
+        print(turb.get_variables()['P'].attr()['val'])
 
 
 def main_func2():
@@ -56,5 +57,5 @@ def main_func2():
         turbine_nw.print_results()
 
 if __name__ == '__main__':
-    # main_func1()
-    main_func2()
+    main_func1()
+    # main_func2()

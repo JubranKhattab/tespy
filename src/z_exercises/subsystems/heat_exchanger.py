@@ -1,6 +1,7 @@
 from tespy.networks import Network
 from tespy.components import (Source, Sink, HeatExchangerSimple)
 from tespy.connections import Connection
+from tespy.tools import analyses
 import CoolProp.CoolProp as CP
 
 def main_func():
@@ -19,10 +20,10 @@ def main_func():
         hx_nw.add_conns(so_2_hx, hx_2_si)
 
         # define parameters
-        hx.set_attr(pr=1,  Q=-50000)
+        hx.set_attr(pr=1,  Q=+50000)
 
-        so_2_hx.set_attr(fluid={'Water':0.9}, T=50, p=1)
-        hx_2_si.set_attr(T=10)
+        so_2_hx.set_attr(fluid={'Water':1.0}, T=20, p=1)
+        hx_2_si.set_attr(T=50)
 
         # solve
         hx_nw.solve(mode='design')
