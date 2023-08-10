@@ -2,6 +2,7 @@ from tespy.networks import Network
 from tespy.components import (Source, Sink, Turbine)
 from tespy.connections import Connection, Bus
 from tespy.tools import ExergyAnalysis
+import plotly.graph_objects as go
 
 def main_func1():
         # network
@@ -49,6 +50,7 @@ def main_func1():
         Tamb = 25
 
         # add busses to nw
+        # hot_steam is not necessary to add
         turbine_nw.add_busses(power)
 
         ean = ExergyAnalysis(turbine_nw, E_P=[power], E_F=[hot_steam], E_L=[])
