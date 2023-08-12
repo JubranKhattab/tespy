@@ -3,6 +3,7 @@ from tespy.components import (Turbine, Pump, Condenser, HeatExchangerSimple, Cyc
 from tespy.connections import Connection, Bus
 import matplotlib.pyplot as plt
 import numpy as np
+from tespy.tools import ExergyAnalysis
 
 
 def easy_process():
@@ -45,7 +46,7 @@ def easy_process():
     # turbine
     # m input, P output or the opposite
     turb.set_attr(eta_s=0.9)
-    conn_cc_turb.set_attr(m=50, p=65, T=500, fluid={'Water': 1})
+    conn_cc_turb.set_attr(m=5, p=65, T=400, fluid={'Water': 1})
     conn_turb_cond.set_attr(x=0.95)
 
     # condenser
@@ -56,8 +57,9 @@ def easy_process():
     conn_pump_stm_gen.set_attr(x=0)
     stm_gen.set_attr(pr=1)
 
-    rankine_nw, powergen = assess_elect_power(rankine_nw, turb, pump)
-    return rankine_nw
+    ean =1
+    rankine_nw, ean = exergy_ana(rankine_nw, turb, cond, pump, stm_gen, so, si)
+    return rankine_nw, ean
 
 
 def analyze_process():
@@ -114,7 +116,7 @@ def analyze_process():
 
     # condenser
     cond.set_attr(pr1=1, pr2=1, ttd_u = 10) #
-    conn_so_cond.set_attr( p=1.2, T=20, fluid={'Water': 1})  #
+    conn_so_cond.set_attr(p=1.2, T=20, fluid={'Water': 1})  #
     # conn_cond_si.set_attr(T=30) #
 
     # pump
@@ -122,9 +124,9 @@ def analyze_process():
     # conn_pump_stm_gen.set_attr(x=0)
 
     # steam generator
-    stm_gen.set_attr(pr=0.9) #
+    stm_gen.set_attr(pr=1) #
 
-    rankine_nw, powergen = assess_elect_power(rankine_nw, turb, pump)
+    rankine_nw, powergen = exergy_ana(rankine_nw, turb, pump)
 
     """
      ### from here starts the analysis ###
@@ -169,30 +171,51 @@ def define_data():
     return data, eta, power
 
 
-def assess_elect_power(rankine_nw, turb, pump):
-    powergen = Bus("electrical power output")
+def exergy_ana(rankine_nw, turb, cond, pump, stm_gen,so, si):
+    # define ambient
+    T_amb = 20
+    p_amp = 1
 
-    powergen.add_comps(
-        {"comp": turb, "char": 0.97, "base": "component"},
-        {"comp": pump, "char": 0.97, "base": "bus"},
-    )
-    # base: definition of efficiency -> see docu
-    # see difference between component value and bus value in results
-    # turbine: bus < component. mech to ele
-    # pump: component > bus. ele to mech
+    # ++define busses types++
 
-    rankine_nw.add_busses(powergen)
-    return rankine_nw, powergen
+    # power
+    # +select placeS (components) of bus type+
+    power_net = Bus('Power netto')
+    power_net.add_comps({'comp': turb, 'char':1, 'base': 'component'},
+                    {'comp': pump, 'char':1, 'base': 'bus'})
+    #### test differnet busses
+
+    # heat
+    # +select placeS (components) of bus type+
+    heat_in = Bus('Heat in')
+    heat_in.add_comps({'comp': stm_gen})
+
+    cooling = Bus('Cooling water')
+    cooling.add_comps({'comp': so, 'base': 'bus'}, {'comp': si})
+
+    # mass flow
+    # +select placeS (components) of bus type+
+
+    # ++ add busses to network
+    rankine_nw.add_busses(power_net, heat_in, cooling)
+
+    # define ena and assign as P, F, L
+    ean = ExergyAnalysis(rankine_nw, E_F=[heat_in], E_P=[power_net], E_L=[cooling])
+
+    return rankine_nw, ean
 
 
-def solve(rankine_nw):
+def solve(rankine_nw, ean):
     # solve
     rankine_nw.set_attr(iterinfo=False)  # disable the printout of the convergence history
     rankine_nw.solve(mode='design')
     rankine_nw.print_results()
 
+    ean.analyse(pamb=1, Tamb=15)
+    ean.print_results()
+
 
 if __name__ =='__main__':
-    rankine_nw = easy_process()
+    rankine_nw, ean = easy_process()
     # rankine_nw = analyze_process()
-    solve(rankine_nw)
+    solve(rankine_nw, ean)

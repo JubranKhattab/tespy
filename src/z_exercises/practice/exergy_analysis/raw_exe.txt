@@ -1,0 +1,30 @@
+
+
+# define ambient
+T_amb =
+p_amp =
+
+# ++define busses types++
+
+# power
+# +select placeS (components) of bus type+
+
+
+
+# heat
+# +select placeS (components) of bus type+
+
+
+# mass flow
+# +select placeS (components) of bus type+
+
+
+# ++ add busses to network
+nw.add_busses( )
+
+# define ena and assign as P, F, L
+ean = ExergyAnalysis(nw, E_F=[], E_P=[], E_L=[])
+
+# do analysis
+ean.analyse(pamb=p_amp, Tamb=T_amb)
+ean.print_results()
