@@ -329,7 +329,7 @@ class ExergyAnalysis:
             )
             raise ValueError(msg)
 
-    def analyse(self, pamb, Tamb, Chem_Ex=None):
+    def analyse(self, pamb, Tamb, Chem_Ex=None, Exe_Eco=None):
         """Run the exergy analysis.
 
         Parameters
@@ -357,6 +357,9 @@ class ExergyAnalysis:
         if Chem_Ex is not None:
             conn_exergy_data_cols += ['e_CH', 'E_CH']
 
+        if Exe_Eco is not None:
+            conn_exergy_data_cols += ['c_cost']
+
         self.connection_data = pd.DataFrame(
             columns=conn_exergy_data_cols,
             dtype='float64'
@@ -371,12 +374,15 @@ class ExergyAnalysis:
         for conn in self.nw.conns['object']:
             conn.get_physical_exergy(pamb_SI, Tamb_SI)
             conn.get_chemical_exergy(pamb_SI, Tamb_SI, Chem_Ex)
+            conn.init_cost_per_exergy_unit()
             conn_exergy_data = [
                 conn.ex_physical, conn.ex_therm, conn.ex_mech,
                 conn.Ex_physical, conn.Ex_therm, conn.Ex_mech
             ]
             if Chem_Ex is not None:
                 conn_exergy_data += [conn.ex_chemical, conn.Ex_chemical]
+            if Exe_Eco is not None:
+                conn_exergy_data += [conn.c_cost]
 
             self.connection_data.loc[conn.label] = conn_exergy_data
 

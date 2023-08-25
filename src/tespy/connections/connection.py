@@ -615,6 +615,20 @@ class Connection:
 
         self.Ex_chemical = self.m.val_SI * self.ex_chemical
 
+    def init_cost_per_exergy_unit(self):
+        r"""
+        Declare and initialize the cost per exergy unit of every connection
+
+        Parameters
+        ----------
+
+        Note
+        ----
+
+
+        """
+        self.c_cost = np.nan
+
 
 class Ref:
     r"""
