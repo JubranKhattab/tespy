@@ -11,8 +11,8 @@ nw = Network(fluids=["Water"], T_unit="C", p_unit="bar", h_unit="kJ / kg")
 
 # components
 hx = HeatExchangerSimple("Heat Exchanger")
-so = Source("Source")
-si = Sink("Sink")
+so = Source("Source label")
+si = Sink("Sink label")
 
 # Connections
 so_2_hx = Connection(so, 'out1', hx, 'in1', label="Inlet")
@@ -59,5 +59,17 @@ nw.add_busses(heat_in_B, mass_flow_B)
 ean = ExergyAnalysis(nw, E_F=[heat_in_B], E_P=[mass_flow_B], E_L=[])
 
 # do analysis
-ean.analyse(pamb=p_amp, Tamb=T_amb, Chem_Ex= ch_ex_d.stand_ch_exe_dict('Ahrendts'), Exe_Eco=0)
+# define input for exe eco
+
+comp_labels = nw.comps.index.tolist()
+z_cost_streams = {key: None for key in comp_labels}
+z_cost_streams['Heat Exchanger'] = 120
+
+sources_labels = nw.comps[nw.comps['comp_type'] == 'Source'].index.tolist()
+c_cost_source = {key: None for key in sources_labels}
+c_cost_source['Source label'] = 0
+
+exe_eco_input = {**z_cost_streams, **c_cost_source}
+# source has no z --> only one dict is necessary
+ean.analyse(pamb=p_amp, Tamb=T_amb, Chem_Ex= ch_ex_d.stand_ch_exe_dict('Ahrendts'), Exe_Eco=exe_eco_input)
 ean.print_results()
