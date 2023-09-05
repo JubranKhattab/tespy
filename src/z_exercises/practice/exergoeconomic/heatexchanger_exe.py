@@ -67,7 +67,7 @@ z_cost_streams['Heat Exchanger'] = 120
 
 sources_labels = nw.comps[nw.comps['comp_type'] == 'Source'].index.tolist()
 c_cost_source = {key: None for key in sources_labels}
-c_cost_source['Source label'] = 0
+c_cost_source['Source label'] = 20
 
 exe_eco_input = {**z_cost_streams, **c_cost_source}
 # source has no z --> only one dict is necessary
