@@ -535,3 +535,119 @@ class Turbine(Turbomachine):
         self.E_bus = {"chemical": 0, "physical": 0, "massless": -self.P.val}
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F
+
+    def assign_eco_values_conn_to_comp(self):
+        r"""
+        Write all the calculated values from the exergy economic balance to be attributes of the components.
+        That will be used at the end to check that values match.
+
+        Parameters
+        ----------
+
+        """
+        # declare variables to the component
+        c_per_unit, E_streams_tot, C_streams = {}, {}, {}
+        self.exe_eco = {'C_streams': {}, 'c_per_unit': {}, 'E_streams_tot': {}}
+
+        # help Dictionary
+        dict_dicts = {'c_per_unit': c_per_unit, 'E_streams_tot': E_streams_tot, 'C_streams': C_streams}
+
+        # read input values an assign them to the component.
+        for conn in self.inl:
+            # read c from inlet
+            cost_id = f"c_cost_{conn.target_id}"
+            c_per_unit[cost_id] = conn.c_cost
+
+            # read and calculate E from inlet
+            E_id = f"E_TOT_{conn.target_id}"
+            E_streams_tot[E_id] = conn.Ex_physical + conn.Ex_chemical
+
+            # calculate C
+            C_id = f"C_{conn.target_id}"
+            C_streams[C_id] = c_per_unit[cost_id]*E_streams_tot[E_id]
+
+        for conn in self.outl:
+            # declare c for outlet
+            cost_id = f"c_cost_{conn.source_id}"
+            c_per_unit[cost_id] = conn.c_cost
+
+            # read and calculate E from outlet
+            E_id = f"E_TOT_{conn.source_id}"
+            E_streams_tot[E_id] = conn.Ex_physical + conn.Ex_chemical
+
+            # declare C for outlet
+            C_id = f"C_{conn.source_id}"
+            C_streams[C_id] = c_per_unit[cost_id] * E_streams_tot[E_id]
+
+        # add all variables {c, C, E} as attributes for the components.
+        for d in list(dict_dicts.values()):
+            dict_name = list(dict_dicts.keys())[list(dict_dicts.values()).index(d)]
+            for key, value in d.items():
+                self.exe_eco[f"{dict_name}"][f"{key}"] = value
+
+    def assign_eco_values_bus(self):
+        self.exe_eco['E_streams_tot']['E_outPower'] = self.E_outPower
+        self.exe_eco['C_streams']['C_stream_outPower'] = self.C_stream_outPower
+        self.exe_eco['c_per_unit']['c_cost_outPower'] = self.c_cost_outPower
+
+    def exergy_economic_balance(self,Exe_Eco):
+        r"""
+        declare and prepare component's variables c, E, C and Z and calculate exergy economics balance of a component.
+
+        c: cost per exergy unit to every connection.
+        E: Sum of exergy streams to each inlet and outlet connection.
+        C: Cost stream to every connection.
+        Z: Sum of leveled capital investment costs 'CI' and operating and maintenance costs 'OM'.
+
+        For inlets:
+            c is known from previous components
+            Z is given as input.
+            E is calculated previously in exergy balance function
+            C is calculated by Exergy-Costing principle
+
+        For outlets:
+            E is calculated previously in exergy balance function
+            C is calculated by Exergy-Costing principle
+            c is calculated by Exergy-Costing principle
+
+        Units
+            c [ / GJ]
+            Z [ / h]
+            E [ W ]
+            C [ / h]
+
+        Parameters
+        ----------
+        Exe_Eco: dict
+            Contains c for all sources as well as all Z for every component or component group in the network.
+
+        Note
+        ----
+        Requirement: all necessary input variables are known and calculated previously.
+            input variables: Z, E, c and C for all inlets
+
+
+        """
+        "++Input++"
+        # assign Z to be an attribute for the component
+        Z_id = f"{self.label}_Z"
+        self.Z_costs = Exe_Eco[f"{Z_id}"]
+
+        # create attribute for the output power
+        self.E_outPower = -self.P.val
+
+        # prepare inlet
+        self.inl[0].Ex_tot = self.inl[0].Ex_physical + self.inl[0].Ex_chemical
+        self.inl[0].C_stream = self.inl[0].Ex_tot*self.inl[0].c_cost * (3600/10**9)
+
+        # define auxiliary equations
+        self.outl[0].c_cost = self.inl[0].c_cost
+
+        "++Output++"
+        # calculate outlet
+        self.outl[0].Ex_tot = self.outl[0].Ex_physical + self.outl[0].Ex_chemical
+        self.outl[0].C_stream = self.outl[0].c_cost * self.outl[0].Ex_tot * (3600/10**9)
+
+        # costs of Power
+        self.C_stream_outPower = self.inl[0].C_stream + self.Z_costs - self.outl[0].C_stream
+        self.c_cost_outPower = self.C_stream_outPower / self.E_outPower * (10**9/3600)

@@ -374,7 +374,7 @@ class ExergyAnalysis:
         for conn in self.nw.conns['object']:
             conn.get_physical_exergy(pamb_SI, Tamb_SI)
             conn.get_chemical_exergy(pamb_SI, Tamb_SI, Chem_Ex)
-            conn.init_cost_per_exergy_unit()
+            conn.init_cost_per_exergy_unit(Exe_Eco)  # init conn
             conn_exergy_data = [
                 conn.ex_physical, conn.ex_therm, conn.ex_mech,
                 conn.Ex_physical, conn.Ex_therm, conn.Ex_mech
@@ -407,6 +407,15 @@ class ExergyAnalysis:
         for cp in self.nw.comps['object']:
             # save component information
             cp.exergy_balance(Tamb_SI)
+            # if cp.__class__.__name__ == 'HeatExchangerSimple':
+            #     cp.exe_economy_balance()
+            #     cp.c_fuel = 9
+            #     self.nw.conns.object.Inlet.c_c_c = 5
+            if cp.__class__.__name__ == 'Turbine':
+                cp.exergy_economic_balance(Exe_Eco)  # specific for every component
+                cp.assign_eco_values_conn_to_comp()  # can be general function
+                cp.assign_eco_values_bus()  # specific for every component
+
             if not hasattr(cp, 'fkt_group'):
                 cp.fkt_group = cp.label
             self.component_data.loc[cp.label] = [

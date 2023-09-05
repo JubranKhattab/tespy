@@ -615,12 +615,14 @@ class Connection:
 
         self.Ex_chemical = self.m.val_SI * self.ex_chemical
 
-    def init_cost_per_exergy_unit(self):
+    def init_cost_per_exergy_unit(self, Exe_Eco):
         r"""
-        Declare and initialize the cost per exergy unit of every connection
+        Declare the cost per exergy unit of every connection then initialize the costs
+        per exergy unit of all sources.
 
         Parameters
         ----------
+        Exe_Eco : dict
 
         Note
         ----
@@ -628,6 +630,9 @@ class Connection:
 
         """
         self.c_cost = np.nan
+        conn = self.source.__class__.__name__
+        if conn in 'Source':
+            self.c_cost = Exe_Eco[self.source.label]
 
 
 class Ref:
