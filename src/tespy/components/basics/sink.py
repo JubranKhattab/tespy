@@ -112,3 +112,90 @@ class Sink(Component):
         }
         self.E_D = np.nan
         self.epsilon = np.nan
+
+    def assign_eco_values_conn_to_comp(self):
+        r"""
+        Write all the calculated values from the exergy economic balance to be attributes of the components.
+        That will be used at the end to check that values match.
+
+        Parameters
+        ----------
+
+        """
+        # declare variables to the component
+        c_per_unit, E_streams_tot, C_streams = {}, {}, {}
+        self.exe_eco = {'C_streams': {}, 'c_per_unit': {}, 'E_streams_tot': {}}
+
+        # help Dictionary
+        dict_dicts = {'c_per_unit': c_per_unit, 'E_streams_tot': E_streams_tot, 'C_streams': C_streams}
+
+        # read input values an assign them to the component.
+        for conn in self.inl:
+            # read c from inlet
+            cost_id = f"c_cost_{conn.target_id}"
+            c_per_unit[cost_id] = conn.c_cost
+
+            # read and calculate E from inlet
+            E_id = f"E_TOT_{conn.target_id}"
+            E_streams_tot[E_id] = conn.Ex_physical + conn.Ex_chemical
+
+            # calculate C
+            C_id = f"C_{conn.target_id}"
+            C_streams[C_id] = c_per_unit[cost_id]*E_streams_tot[E_id]
+
+        for conn in self.outl:
+            # declare c for outlet
+            cost_id = f"c_cost_{conn.source_id}"
+            c_per_unit[cost_id] = conn.c_cost
+
+            # read and calculate E from outlet
+            E_id = f"E_TOT_{conn.source_id}"
+            E_streams_tot[E_id] = conn.Ex_physical + conn.Ex_chemical
+
+            # declare C for outlet
+            C_id = f"C_{conn.source_id}"
+            C_streams[C_id] = c_per_unit[cost_id] * E_streams_tot[E_id]
+
+        # add all variables {c, C, E} as attributes for the components.
+        for d in list(dict_dicts.values()):
+            dict_name = list(dict_dicts.keys())[list(dict_dicts.values()).index(d)]
+            for key, value in d.items():
+                self.exe_eco[f"{dict_name}"][f"{key}"] = value
+
+    def exergy_economic_balance(self, Exe_Eco):
+        r"""
+        declare and prepare component's variables c, E, C and Z and calculate exergy economics balance of a component.
+        A sink does not destroy or produce exergy. No exergy economic balance is necessary.
+        All exergy economic input values are known from the before connected component
+
+        c: cost per exergy unit to every connection.
+        E: Sum of exergy streams to each inlet and outlet connection.
+        C: Cost stream to every connection.
+
+        For inlets:
+            c is known from previous components
+            E is calculated previously in connection functions
+            C is calculated by Exergy-Costing principle
+
+        For outlets:
+            no outlets
+
+        Units
+            c [ / GJ]
+            E [ W ]
+            C [ / h]
+
+        Parameters
+        ----------
+
+        Note
+        ----
+        Requirement: all necessary input variables are known and calculated previously.
+            input variables: Z, E, c and C for all inlets
+
+
+        """
+        "++Input++"
+        # prepare inlet
+        self.inl[0].Ex_tot = self.inl[0].Ex_physical + self.inl[0].Ex_chemical  # can be deleted
+        self.inl[0].C_stream = self.inl[0].Ex_tot*self.inl[0].c_cost * (3600/10**9)  # can be deleted

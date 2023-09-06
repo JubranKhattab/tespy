@@ -67,8 +67,6 @@ z_cost_streams['Turbine_Z'] = 120
 
 sources_labels = turbine_nw.comps[turbine_nw.comps['comp_type'] == 'Source'].index.tolist()
 c_cost_source = {key: None for key in sources_labels}
-c_cost_source = {key + '_c_in': value for key, value in c_cost_source.items()}
-c_cost_source['Source_c_in'] = 20
 c_cost_source['Source'] = 20
 
 exe_eco_input = {**z_cost_streams, **c_cost_source}

@@ -586,6 +586,10 @@ class Turbine(Turbomachine):
                 self.exe_eco[f"{dict_name}"][f"{key}"] = value
 
     def assign_eco_values_bus(self):
+        r"""
+        Write the costs related to massless exergy streams to the collection dict of exergy economic values.
+
+        """
         self.exe_eco['E_streams_tot']['E_outPower'] = self.E_outPower
         self.exe_eco['C_streams']['C_stream_outPower'] = self.C_stream_outPower
         self.exe_eco['c_per_unit']['c_cost_outPower'] = self.c_cost_outPower
@@ -602,11 +606,11 @@ class Turbine(Turbomachine):
         For inlets:
             c is known from previous components
             Z is given as input.
-            E is calculated previously in exergy balance function
+            E is calculated previously in connection functions
             C is calculated by Exergy-Costing principle
 
         For outlets:
-            E is calculated previously in exergy balance function
+            E is calculated previously in connection functions
             C is calculated by Exergy-Costing principle
             c is calculated by Exergy-Costing principle
 
@@ -633,8 +637,8 @@ class Turbine(Turbomachine):
         Z_id = f"{self.label}_Z"
         self.Z_costs = Exe_Eco[f"{Z_id}"]
 
-        # create attribute for the output power
-        self.E_outPower = -self.P.val
+        # create attribute for the output power - massless exergy stream
+        self.E_outPower = self.E_bus['massless']
 
         # prepare inlet
         self.inl[0].Ex_tot = self.inl[0].Ex_physical + self.inl[0].Ex_chemical
@@ -651,3 +655,10 @@ class Turbine(Turbomachine):
         # costs of Power
         self.C_stream_outPower = self.inl[0].C_stream + self.Z_costs - self.outl[0].C_stream
         self.c_cost_outPower = self.C_stream_outPower / self.E_outPower * (10**9/3600)
+
+        # for later
+        self.eco_bus_value = True
+
+        # conn calculated
+        self.outl[0].eco_check = True
+        # ++ add busses in Network when available ++

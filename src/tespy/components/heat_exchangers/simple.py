@@ -1098,28 +1098,6 @@ class HeatExchangerSimple(Component):
         else:
             self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F
-
-    def exe_economy_balance(self):
-        # für jeden Eintritt schauen
-        # für jeden Austritt schauen
-        self._c_fuel = self.inl[0].c_cost
-        self._c_product = self.c_fuel*999
-        self.inl[0].c_cost = 27
-        self.outl[0].c_c_c = self.inl[0].c_c_c+20
-    @property
-    def c_fuel(self):
-        return self._c_fuel
-
-    @property
-    def c_product(self):
-        return self._c_product
-
-    @c_fuel.setter
-    def c_fuel(self, new_c_fuel):
-        self._c_fuel = new_c_fuel
-        self._c_product = new_c_fuel * 2
-
-
     def get_plotting_data(self):
         """Generate a dictionary containing FluProDia plotting information.
 
