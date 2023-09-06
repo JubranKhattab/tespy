@@ -407,15 +407,6 @@ class ExergyAnalysis:
         for cp in self.nw.comps['object']:
             # save component information
             cp.exergy_balance(Tamb_SI)
-            # if cp.__class__.__name__ == 'HeatExchangerSimple':
-            #     cp.exe_economy_balance()
-            #     cp.c_fuel = 9
-            #     self.nw.conns.object.Inlet.c_c_c = 5
-            if cp.__class__.__name__ == 'Turbine':
-                cp.exergy_economic_balance(Exe_Eco)  # specific for every component
-                cp.assign_eco_values_conn_to_comp()  # can be general function
-                cp.assign_eco_values_bus()  # specific for every component
-
             if not hasattr(cp, 'fkt_group'):
                 cp.fkt_group = cp.label
             self.component_data.loc[cp.label] = [
@@ -441,6 +432,21 @@ class ExergyAnalysis:
                 ).astype(sankey_columns_dtypes)
 
             self.evaluate_busses(cp)
+
+        """++++++++"""
+        so_list, cp_df = self.create_components_df()
+        for so in so_list:
+            so.exergy_economic_balance(Exe_Eco)  # specific for every component
+            so.assign_eco_values_conn_to_comp()  # can be general function
+        # exergy economic balance of components
+        while not cp_df.empty:
+            cp_df, ready_cp = self.find_next_component(cp_df)
+            for cp in ready_cp:
+                cp.exergy_economic_balance(Exe_Eco)  # specific for every component
+                cp.assign_eco_values_conn_to_comp()  # can be general function
+                if hasattr(cp, 'eco_bus_value'):
+                    cp.assign_eco_values_bus()  # specific for every component
+        """++++++++"""
 
         # create a table that includes exergy destruction attributed to the
         # components
@@ -498,6 +504,31 @@ class ExergyAnalysis:
             logger.error(msg)
 
         self.create_group_data()
+
+    def create_components_df(self):
+        df = self.nw.comps.copy()
+        sources_list = []
+        for index, row in df.iterrows():
+            cp = row["object"]
+            df.at[index, 'num_i'] = cp.num_i
+            if cp.__class__.__name__ == 'Source':
+                sources_list.append(cp)
+                df = df.drop(df[df['object'] == cp].index)
+        df['num_set_c_i'] = 0
+        return sources_list, df
+
+    def find_next_component(self, cp_df):
+        for index, row in cp_df.iterrows():
+            cp = row["object"]
+            for in_conn in cp.inl:
+               if hasattr(in_conn, "eco_check"):
+                   cp_df.at[index, "num_set_c_i"] += 1
+        ready_cp = cp_df[cp_df['num_i'] == cp_df['num_set_c_i']]['object'].tolist()
+        cp_df = cp_df[~cp_df['object'].isin(ready_cp)]
+        # ToDos add the number of busses inlet for the components in the df. The busses are to find in the network by 'busses
+        # the output power of the turbine should hold a c that is the inlet to the pump. -> Turbine should be handled before the pump
+        return cp_df, ready_cp
+
 
     def evaluate_busses(self, cp):
         """Evaluate the exergy balances of busses.
