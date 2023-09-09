@@ -23,7 +23,7 @@ turb_2_si.set_attr(x=0.8)
 
 # bus - generator
 turb_bus = Bus('turbine to bus (generator)')
-turb_bus.add_comps({'comp': turb, "char": 0.8, "base": "component"})
+turb_bus.add_comps({'comp': turb, "char": 1, "base": "component"})
 nw.add_busses(turb_bus)
 
 

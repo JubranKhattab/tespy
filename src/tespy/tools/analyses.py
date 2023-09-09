@@ -22,6 +22,7 @@ from tespy.tools import helpers as hlp
 from tespy.tools import logger
 from tespy.tools.global_vars import combustion_gases
 from tespy.tools.global_vars import err
+from tespy.tools import exergoeconomic as exe_eco
 
 idx = pd.IndexSlice
 
@@ -374,7 +375,7 @@ class ExergyAnalysis:
         for conn in self.nw.conns['object']:
             conn.get_physical_exergy(pamb_SI, Tamb_SI)
             conn.get_chemical_exergy(pamb_SI, Tamb_SI, Chem_Ex)
-            conn.init_cost_per_exergy_unit(Exe_Eco)  # init conn
+            exe_eco.init_cost_per_exergy_unit(conn, Exe_Eco)  # init conn
             conn_exergy_data = [
                 conn.ex_physical, conn.ex_therm, conn.ex_mech,
                 conn.Ex_physical, conn.Ex_therm, conn.Ex_mech
@@ -434,18 +435,27 @@ class ExergyAnalysis:
             self.evaluate_busses(cp)
 
         """++++++++"""
-        so_list, cp_df = self.create_components_df()
-        for so in so_list:
-            so.exergy_economic_balance(Exe_Eco)  # specific for every component
-            so.assign_eco_values_conn_to_comp()  # can be general function
-        # exergy economic balance of components
-        while not cp_df.empty:
-            cp_df, ready_cp = self.find_next_component(cp_df)
-            for cp in ready_cp:
-                cp.exergy_economic_balance(Exe_Eco)  # specific for every component
-                cp.assign_eco_values_conn_to_comp()  # can be general function
-                if hasattr(cp, 'eco_bus_value'):
-                    cp.assign_eco_values_bus()  # specific for every component
+        # check entered dict for inputs costs
+        Exe_Eco = exe_eco.check_input_dict(self, Exe_Eco)
+        # prepare busses
+        exe_eco.define_bus_cost(self, Exe_Eco)
+        if Exe_Eco is not None:
+            # so_list, cp_df = self.create_components_df()
+            so_list, cp_df = exe_eco.create_components_df(self)
+            for so in so_list:
+                so.exergy_economic_balance(Exe_Eco)  # specific for every component
+                # so.assign_eco_values_conn_to_comp()  # can be general function
+                exe_eco.assign_eco_values_conn_to_comp(so)  # is now general function, delete from components
+            # exergy economic balance of components
+            while not cp_df.empty:
+                # cp_df, ready_cp = self.find_next_component(cp_df)
+                cp_df, ready_cp = exe_eco.find_next_component(cp_df)
+                for cp in ready_cp:
+                    cp.exergy_economic_balance(Exe_Eco)  # specific for every component
+                    # cp.assign_eco_values_conn_to_comp()  # can be general function
+                    exe_eco.assign_eco_values_conn_to_comp(cp)  # is now general function, delete from components
+                    if hasattr(cp, 'eco_bus_value'):
+                        cp.assign_eco_values_bus()  # specific for every component
         """++++++++"""
 
         # create a table that includes exergy destruction attributed to the
@@ -504,31 +514,6 @@ class ExergyAnalysis:
             logger.error(msg)
 
         self.create_group_data()
-
-    def create_components_df(self):
-        df = self.nw.comps.copy()
-        sources_list = []
-        for index, row in df.iterrows():
-            cp = row["object"]
-            df.at[index, 'num_i'] = cp.num_i
-            if cp.__class__.__name__ == 'Source':
-                sources_list.append(cp)
-                df = df.drop(df[df['object'] == cp].index)
-        df['num_set_c_i'] = 0
-        return sources_list, df
-
-    def find_next_component(self, cp_df):
-        for index, row in cp_df.iterrows():
-            cp = row["object"]
-            for in_conn in cp.inl:
-               if hasattr(in_conn, "eco_check"):
-                   cp_df.at[index, "num_set_c_i"] += 1
-        ready_cp = cp_df[cp_df['num_i'] == cp_df['num_set_c_i']]['object'].tolist()
-        cp_df = cp_df[~cp_df['object'].isin(ready_cp)]
-        # ToDos add the number of busses inlet for the components in the df. The busses are to find in the network by 'busses
-        # the output power of the turbine should hold a c that is the inlet to the pump. -> Turbine should be handled before the pump
-        return cp_df, ready_cp
-
 
     def evaluate_busses(self, cp):
         """Evaluate the exergy balances of busses.

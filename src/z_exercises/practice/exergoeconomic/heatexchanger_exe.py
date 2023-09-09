@@ -25,9 +25,6 @@ hx.set_attr(pr=0.5, Q=+10000000)
 
 so_2_hx.set_attr(fluid={'Water':1.0}, T=30, p=10, m=40)
 
-# solve
-nw.solve(mode='design')
-nw.print_results()
 
 
 """ +++ exergy analysis +++ """
@@ -44,7 +41,7 @@ p_amp = 1
 # heat
 # +select placeS (components) of bus type+
 heat_in_B = Bus('Heat In')
-heat_in_B.add_comps({'comp': hx, 'char': 1})
+heat_in_B.add_comps({'comp': hx, 'char': +1})
 
 # mass flow
 # +select placeS (components) of bus type+
@@ -54,6 +51,10 @@ mass_flow_B.add_comps({'comp': so, 'base': 'bus'}, {'comp': si})
 
 # ++ add busses to network
 nw.add_busses(heat_in_B, mass_flow_B)
+
+# solve
+nw.solve(mode='design')
+nw.print_results()
 
 # define ena and assign as P, F, L
 ean = ExergyAnalysis(nw, E_F=[heat_in_B], E_P=[mass_flow_B], E_L=[])
