@@ -6,7 +6,7 @@ from tespy.tools.helpers import TESPyConnectionError
 def init_cost_per_exergy_unit(conn, Exe_Eco):
     r"""
     Declare the cost per exergy unit of every connection then initialize the costs
-    per exergy unit of all sources.
+    per exergy unit of all sources, check if all source streams has values for c and raise error if not.
 
     Parameters
     ----------
@@ -34,6 +34,26 @@ def init_cost_per_exergy_unit(conn, Exe_Eco):
 
 
 def check_input_dict(self, Exe_Eco):
+    """
+    In this function the dict Exe_Eco is being checked to avoid errors in the simulation.
+        1. Assign CI and OM costs to all sources and sinks as None. So every component has a value for Z and the user must not add Z costs for component like Source and Sink.
+        2. Check if every other component has a value for c in the dict. If not an error is being raised with the name of the components that missing.
+        3. Check if every power consumption turbomachinery (pumps and compressors) has a value c for the power cost.
+            Either is a value defined or the component is assigned to a turbine, so that the product costs of the turbine "power" are the same as the input for the pump or compressor
+
+    Parameters
+    ----------
+    self : Class
+        object of ExergyAnalysis
+
+    Exe_Eco : Dict
+        costs of all Components Z and allocation for power consumers components.
+
+    Returns
+    -------
+    Exe_Eco
+
+    """
     # add Z for Source and Sink as None to avoid errors
     cp_df = self.nw.comps
     so_si_list = cp_df.index[cp_df['comp_type'].isin(["Source", "Sink"])].tolist()
@@ -63,8 +83,27 @@ def check_input_dict(self, Exe_Eco):
     return Exe_Eco
 
 
-
 def create_components_df(self):
+    """
+    In this function a dataframe is being created with all components except for sources. every row is for one component. The columns are component type, object,
+    number of connections entering the components, number of connections entering the components with already calculated cost per exergy c.
+    For pumps and compressors the number of input connections is increased by 1 because of the input power.
+      If the input power costs is entered from the user as a value, the known number of connection cost is increased by 1 as well.
+      If the input power costs is assign to a turbine, this cost should be calculated from the turbine first, before applying the exergy economic balance
+      on the pumps and compressors
+
+    The function returns also a list of all sources to assign the source stream costs to the linked connection.
+    Parameters
+    ----------
+    self
+
+    Returns
+    -------
+    sources_list : List
+        includes all source components.
+     df : dataframe
+        includes all components of the network except for sources.
+    """
     df = self.nw.comps.copy()
     df['num_set_c_i'] = 0
     sources_list = []
@@ -133,6 +172,24 @@ def assign_eco_values_conn_to_comp(self):
 
 
 def find_next_component(cp_df):
+    """
+    This function takes a dataframe with all components of the network to carry out the exergy economic balance.
+    This function return the components, for which the exergy economic balance can be executed. That applies for the components with already known and calculated cost per exergy unit c
+    for every entering connection as mass stream or power. After every round of applying the exergy economic balance this function is being carried out to find the next ready components.
+    Parameters
+    ----------
+    cp_df : dataframe
+        takes the dataframe with the components, for which the exergy economic balance has not been carried out yet because not all entering costs are known.
+
+    Returns
+    -------
+    cp_df : dataframe
+        Includes all components of the network, for which the exergy economic balance has not been carried out yet
+
+    ready_cp : dataframe
+        Includes all components of the network, for which the exergy economic balance can now be carried out.
+
+    """
     for index, row in cp_df.iterrows():
         cp = row["object"]
         for in_conn in cp.inl:
@@ -145,17 +202,6 @@ def find_next_component(cp_df):
     # ToDos add the number of busses inlet for the components in the df. The busses are to find in the network by 'busses
     # the output power of the turbine should hold a c that is the inlet to the pump. -> Turbine should be handled before the pump
     return cp_df, ready_cp
-
-
-# def assign_busses(self):
-#     for b_id, b in self.nw.busses.items():
-#         bus_only_for = ['Turbine', 'Compressor', 'Pump']
-#         cp_list = b.comps.index.values.tolist()
-#         cp_list_names = [type(obj).__name__ for obj in cp_list]
-#         if any(c in cp_list_names for c in bus_only_for):
-#             for cp in cp_list:
-#                 cp.connected_bus = True
-#         print("end")
 
 
 def define_bus_cost(self, Exe_Eco):
@@ -192,6 +238,13 @@ def define_bus_cost(self, Exe_Eco):
             bus_costs = Bus_cost(b, Exe_Eco)
         for c in bus_costs.inl + bus_costs.outl:
             c.bus_costs = bus_costs
+        for c in bus_costs.c_cost_out:
+            if c not in Exe_Eco:
+                msg = ('Error assigning internal power costs to some components. No values found for ' +
+                       c + ' in the library Exe_Eco. The key in the dictionary Exe_Eco must match with the wanted component label with \'_c\' a suffix')
+                logger.error(msg)
+                raise TESPyConnectionError(msg)
+
 
 
 class Bus_cost:
