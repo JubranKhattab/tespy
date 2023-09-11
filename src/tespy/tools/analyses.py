@@ -22,7 +22,7 @@ from tespy.tools import helpers as hlp
 from tespy.tools import logger
 from tespy.tools.global_vars import combustion_gases
 from tespy.tools.global_vars import err
-from tespy.tools import exergoeconomic as exe_eco
+from tespy.tools import exergoeconomic as exe_eco_hlp
 
 idx = pd.IndexSlice
 
@@ -359,7 +359,7 @@ class ExergyAnalysis:
             conn_exergy_data_cols += ['e_CH', 'E_CH']
 
         if Exe_Eco is not None:
-            conn_exergy_data_cols += ['c_cost']
+            conn_exergy_data_cols += ['c_cost', 'C_stream']
 
         self.connection_data = pd.DataFrame(
             columns=conn_exergy_data_cols,
@@ -375,7 +375,7 @@ class ExergyAnalysis:
         for conn in self.nw.conns['object']:
             conn.get_physical_exergy(pamb_SI, Tamb_SI)
             conn.get_chemical_exergy(pamb_SI, Tamb_SI, Chem_Ex)
-            exe_eco.init_cost_per_exergy_unit(conn, Exe_Eco)  # init conn
+            exe_eco_hlp.init_cost_per_exergy_unit(conn, Exe_Eco)  # init conn
             conn_exergy_data = [
                 conn.ex_physical, conn.ex_therm, conn.ex_mech,
                 conn.Ex_physical, conn.Ex_therm, conn.Ex_mech
@@ -383,7 +383,7 @@ class ExergyAnalysis:
             if Chem_Ex is not None:
                 conn_exergy_data += [conn.ex_chemical, conn.Ex_chemical]
             if Exe_Eco is not None:
-                conn_exergy_data += [conn.c_cost]
+                conn_exergy_data += [conn.c_cost, 'None']
 
             self.connection_data.loc[conn.label] = conn_exergy_data
 
@@ -435,28 +435,36 @@ class ExergyAnalysis:
             self.evaluate_busses(cp)
 
         """++++++++"""
-        # check entered dict for inputs costs
-        Exe_Eco = exe_eco.check_input_dict(self, Exe_Eco)
-        # prepare busses
-        exe_eco.define_bus_cost(self, Exe_Eco)
         if Exe_Eco is not None:
+            # check entered dict for inputs costs
+            Exe_Eco = exe_eco_hlp.check_input_dict(self, Exe_Eco)
+            # prepare busses
+            exe_eco_hlp.define_bus_cost(self, Exe_Eco)
+
             # so_list, cp_df = self.create_components_df()
-            so_list, cp_df = exe_eco.create_components_df(self)
+            so_list, cp_df = exe_eco_hlp.create_components_df(self)
             for so in so_list:
                 so.exergy_economic_balance(Exe_Eco)  # specific for every component
                 # so.assign_eco_values_conn_to_comp()  # can be general function
-                exe_eco.assign_eco_values_conn_to_comp(so)  # is now general function, delete from components
+                exe_eco_hlp.assign_eco_values_conn_to_comp(so)  # is now general function, delete from components
             # exergy economic balance of components
+            checked_conn = []
             while not cp_df.empty:
                 # cp_df, ready_cp = self.find_next_component(cp_df)
-                cp_df, ready_cp = exe_eco.find_next_component(cp_df)
+                cp_df, ready_cp = exe_eco_hlp.find_next_component(cp_df, checked_conn)
                 for cp in ready_cp:
                     cp.exergy_economic_balance(Exe_Eco)  # specific for every component
                     # cp.assign_eco_values_conn_to_comp()  # can be general function
-                    exe_eco.assign_eco_values_conn_to_comp(cp)  # is now general function, delete from components
+                    exe_eco_hlp.assign_eco_values_conn_to_comp(cp)  # is now general function, delete from components
                     if hasattr(cp, 'eco_bus_value'):
                         cp.assign_eco_values_bus()  # specific for every component
         """++++++++"""
+
+        for conn in self.nw.conns['object']:
+            if Exe_Eco is not None:
+                conn_exergy_eco_data = [conn.c_cost, conn.C_stream]
+                self.connection_data.loc[conn.label, ['c_cost', 'C_stream']] = conn_exergy_eco_data
+        """ + + + +"""
 
         # create a table that includes exergy destruction attributed to the
         # components
