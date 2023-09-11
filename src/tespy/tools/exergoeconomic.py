@@ -280,3 +280,14 @@ class Bus_cost:
         return {comp.label+'_c': Exe_Eco.get(comp.label + "_c") for comp in outl}
 
 
+def conn_print_exe_eco(self):
+    for conn in self.nw.conns['object']:
+        conn_exergy_eco_data = [conn.c_cost, conn.C_stream]
+        self.connection_data.loc[conn.label, ['c_cost', 'C_stream']] = conn_exergy_eco_data
+
+
+def comp_print_exe_eco(self):
+    # todo: add c_f c_p, C_D, r and f
+    for comp in self.nw.comps['object']:
+        comp_exergy_eco_data = [comp.Z_costs]
+        self.component_data.loc[comp.label, ['Z']] = comp_exergy_eco_data

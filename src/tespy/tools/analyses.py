@@ -358,9 +358,6 @@ class ExergyAnalysis:
         if Chem_Ex is not None:
             conn_exergy_data_cols += ['e_CH', 'E_CH']
 
-        if Exe_Eco is not None:
-            conn_exergy_data_cols += ['c_cost', 'C_stream']
-
         self.connection_data = pd.DataFrame(
             columns=conn_exergy_data_cols,
             dtype='float64'
@@ -382,8 +379,6 @@ class ExergyAnalysis:
             ]
             if Chem_Ex is not None:
                 conn_exergy_data += [conn.ex_chemical, conn.Ex_chemical]
-            if Exe_Eco is not None:
-                conn_exergy_data += [conn.c_cost, 'None']
 
             self.connection_data.loc[conn.label] = conn_exergy_data
 
@@ -458,13 +453,8 @@ class ExergyAnalysis:
                     exe_eco_hlp.assign_eco_values_conn_to_comp(cp)  # is now general function, delete from components
                     if hasattr(cp, 'eco_bus_value'):
                         cp.assign_eco_values_bus()  # specific for every component
+            exe_eco_hlp.conn_print_exe_eco(self)
         """++++++++"""
-
-        for conn in self.nw.conns['object']:
-            if Exe_Eco is not None:
-                conn_exergy_eco_data = [conn.c_cost, conn.C_stream]
-                self.connection_data.loc[conn.label, ['c_cost', 'C_stream']] = conn_exergy_eco_data
-        """ + + + +"""
 
         # create a table that includes exergy destruction attributed to the
         # components
@@ -521,6 +511,7 @@ class ExergyAnalysis:
                 'properly setup for the exergy analysis.')
             logger.error(msg)
 
+        exe_eco_hlp.comp_print_exe_eco(self)
         self.create_group_data()
 
     def evaluate_busses(self, cp):

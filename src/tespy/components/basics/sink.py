@@ -197,5 +197,8 @@ class Sink(Component):
         """
         "++Input++"
         # prepare inlet
+        Z_id = f"{self.label}_Z"
+        self.Z_costs = Exe_Eco[f"{Z_id}"]
+
         self.inl[0].Ex_tot = self.inl[0].Ex_physical + self.inl[0].Ex_chemical  # can be deleted
         self.inl[0].C_stream = self.inl[0].Ex_tot*self.inl[0].c_cost * (3600/10**9)  # can be deleted
