@@ -590,9 +590,11 @@ class Turbine(Turbomachine):
         Write the costs related to massless exergy streams to the collection dict of exergy economic values.
 
         """
-        self.exe_eco['E_streams_tot']['E_outPower'] = self.E_outPower
-        self.exe_eco['C_streams']['C_stream_outPower'] = self.C_stream_outPower
-        self.exe_eco['c_per_unit']['c_cost_outPower'] = self.c_cost_outPower
+        #list = ['E_streams_tot', 'C_streams', 'c_per_unit']
+        #self.exe_eco = {d: {} for d in list}
+        self.exe_eco['E_streams_tot']['E_Power'] = self.E_Power
+        self.exe_eco['C_streams']['C_stream_Power'] = self.C_stream_Power
+        self.exe_eco['c_per_unit']['c_cost_Power'] = self.c_cost_Power
 
     def exergy_economic_balance(self,Exe_Eco):
         r"""
@@ -638,7 +640,7 @@ class Turbine(Turbomachine):
         self.Z_costs = Exe_Eco[f"{Z_id}"]
 
         # create attribute for the output power - massless exergy stream
-        self.E_outPower = self.E_bus['massless']
+        self.E_Power = self.E_bus['massless']
 
         # prepare inlet
         self.inl[0].Ex_tot = self.inl[0].Ex_physical + self.inl[0].Ex_chemical
@@ -653,12 +655,13 @@ class Turbine(Turbomachine):
         self.outl[0].C_stream = self.outl[0].c_cost * self.outl[0].Ex_tot * (3600/10**9)
 
         # costs of Power
-        self.C_stream_outPower = self.inl[0].C_stream + self.Z_costs - self.outl[0].C_stream
-        self.c_cost_outPower = self.C_stream_outPower / self.E_outPower * (10**9/3600)
+        self.C_stream_Power = self.inl[0].C_stream + self.Z_costs - self.outl[0].C_stream
+        self.c_cost_Power = self.C_stream_Power / self.E_Power * (10**9/3600)
 
-        # for later
+        # for assigning the costs related to massless exergy streams to the collection dict of exergy economic values. (for turbine, pump and compressor)
         self.eco_bus_value = True
 
         # conn calculated
         self.outl[0].eco_check = True
         # ++ add busses in Network when available ++
+        #self.assign_eco_values_bus()

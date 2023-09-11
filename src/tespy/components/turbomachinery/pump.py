@@ -543,3 +543,81 @@ class Pump(Turbomachine):
         }
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F
+
+    def assign_eco_values_bus(self):
+        r"""
+        Write the costs related to massless exergy streams to the collection dict of exergy economic values.
+
+        """
+        self.exe_eco['E_streams_tot']['E_Power'] = self.E_Power
+        self.exe_eco['C_streams']['C_stream_Power'] = self.C_stream_Power
+        self.exe_eco['c_per_unit']['c_cost_Power'] = self.c_cost_Power
+
+    def exergy_economic_balance(self, Exe_Eco):
+        r"""
+        declare and prepare component's variables c, E, C and Z and calculate exergy economics balance of a component.
+
+        c: cost per exergy unit to every connection.
+        E: Sum of exergy streams to each inlet and outlet connection.
+        C: Cost stream to every connection.
+        Z: Sum of leveled capital investment costs 'CI' and operating and maintenance costs 'OM'.
+
+        For inlets:
+            c is known from previous components
+            Z is given as input.
+            E is calculated previously in connection functions
+            C is calculated by Exergy-Costing principle
+
+        For outlets:
+            E is calculated previously in connection functions
+            C is calculated by Exergy-Costing principle
+            c is calculated by Exergy-Costing principle
+
+        Units
+            c [ / GJ]
+            Z [ / h]
+            E [ W ]
+            C [ / h]
+
+        Parameters
+        ----------
+        Exe_Eco: dict
+            Contains c for all sources as well as all Z for every component or component group in the network.
+
+        Note
+        ----
+        Requirement: all necessary input variables are known and calculated previously.
+            input variables: Z, E, c and C for all inlets
+
+
+        """
+        "++Input++"
+        # assign Z to be an attribute for the component
+        Z_id = f"{self.label}_Z"
+        self.Z_costs = Exe_Eco[f"{Z_id}"]
+
+        # create attribute for the output power - massless exergy stream
+        self.E_Power = self.E_bus['massless']
+
+        # prepare inlet
+        self.inl[0].Ex_tot = self.inl[0].Ex_physical + self.inl[0].Ex_chemical
+        self.inl[0].C_stream = self.inl[0].Ex_tot * self.inl[0].c_cost * (3600 / 10 ** 9)
+
+        # costs of Inlet Power
+        self.c_cost_Power = Exe_Eco[f"{self.label+'_c'}"]
+        self.C_stream_Power = self.c_cost_Power * self.E_Power * (3600 / 10 ** 9)
+
+        # define auxiliary equations
+        ' - '
+
+        "++Output++"
+        # calculate outlet
+        self.outl[0].Ex_tot = self.outl[0].Ex_physical + self.outl[0].Ex_chemical
+        self.outl[0].C_stream = self.inl[0].C_stream + self.Z_costs + self.C_stream_Power
+        self.outl[0].c_cost = self.outl[0].C_stream / self.outl[0].Ex_tot * (10**9/3600)
+
+        # for assigning the costs related to massless exergy streams to the collection dict of exergy economic values. (for turbine, pump and compressor)
+        self.eco_bus_value = True
+
+        # conn calculated
+        self.outl[0].eco_check = True

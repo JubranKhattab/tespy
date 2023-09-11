@@ -53,6 +53,11 @@ def check_input_dict(self, Exe_Eco):
     -------
     Exe_Eco
 
+    todo: Currently the costs of the supplied power (for pumps and compressor) must be entered as a value.
+     The function needs to be expanded when the power generated in the process is used and no power is purchased from outside.
+     To do this, the functions in Turbine must be able to override the costs of the associated component.
+     Turbine should turn on "eco_check_bus" in the pump or compressor
+
     """
     # add Z for Source and Sink as None to avoid errors
     cp_df = self.nw.comps
@@ -171,7 +176,7 @@ def assign_eco_values_conn_to_comp(self):
             self.exe_eco[f"{dict_name}"][f"{key}"] = value
 
 
-def find_next_component(cp_df):
+def find_next_component(cp_df, checked_conn):
     """
     This function takes a dataframe with all components of the network to carry out the exergy economic balance.
     This function return the components, for which the exergy economic balance can be executed. That applies for the components with already known and calculated cost per exergy unit c
@@ -180,7 +185,9 @@ def find_next_component(cp_df):
     ----------
     cp_df : dataframe
         takes the dataframe with the components, for which the exergy economic balance has not been carried out yet because not all entering costs are known.
-
+    checked_conn : list
+        includes all already check connections, if any of them has 'eco_check' means that c is now known. No need to add 1 to the column 'num_set_c_i' every time
+         while waiting for calculating c of  the other entering connection.
     Returns
     -------
     cp_df : dataframe
@@ -193,14 +200,15 @@ def find_next_component(cp_df):
     for index, row in cp_df.iterrows():
         cp = row["object"]
         for in_conn in cp.inl:
-           if hasattr(in_conn, "eco_check"):
-               cp_df.at[index, "num_set_c_i"] += 1
+            if hasattr(in_conn, "eco_check"):
+                if in_conn not in checked_conn:
+                    cp_df.at[index, "num_set_c_i"] += 1
+                    checked_conn.append(in_conn)
         if hasattr(cp, "eco_check_bus"):
             cp_df.at[index, "num_set_c_i"] += 1
+            del cp.eco_check_bus
     ready_cp = cp_df[cp_df['num_i'] == cp_df['num_set_c_i']]['object'].tolist()
     cp_df = cp_df[~cp_df['object'].isin(ready_cp)]
-    # ToDos add the number of busses inlet for the components in the df. The busses are to find in the network by 'busses
-    # the output power of the turbine should hold a c that is the inlet to the pump. -> Turbine should be handled before the pump
     return cp_df, ready_cp
 
 
