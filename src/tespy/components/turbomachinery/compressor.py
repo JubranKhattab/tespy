@@ -740,6 +740,10 @@ class Compressor(Turbomachine):
         Requirement: all necessary input variables are known and calculated previously.
             input variables: Z, E, c and C for all inlets
 
+        The values of the connections (c, C) depend on the purpose for which the component under consideration is used.
+        It does not depend on the parameters (T and p) of the streams 'connections'. The ambient conditions also have no influence on the definition here.
+        In the next step, when calculating the costs associated with the product and fuel, the ambient temperature must be considered.
+
 
         """
         "++Input++"

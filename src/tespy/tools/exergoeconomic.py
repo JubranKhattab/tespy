@@ -62,7 +62,7 @@ def check_input_dict(self, Exe_Eco):
     # add Z for Source and Sink as None to avoid errors
     cp_df = self.nw.comps
     so_si_list = cp_df.index[cp_df['comp_type'].isin(["Source", "Sink"])].tolist()
-    Exe_Eco.update({f"{item}_Z": None for item in so_si_list})
+    Exe_Eco.update({f"{item}_Z": np.nan for item in so_si_list})
 
     # check if every component has Z value: The sum of leveled capital investment costs 'CI' and operating and maintenance costs 'OM'.
     all_comps = cp_df.index[~cp_df['comp_type'].isin(["Source", "Sink"])].tolist()
@@ -291,3 +291,6 @@ def comp_print_exe_eco(self):
     for comp in self.nw.comps['object']:
         comp_exergy_eco_data = [comp.Z_costs]
         self.component_data.loc[comp.label, ['Z']] = comp_exergy_eco_data
+
+
+#  todo: convert unit with function, check if C_P = Z + C_F for every component

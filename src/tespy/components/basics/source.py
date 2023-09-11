@@ -210,3 +210,16 @@ class Source(Component):
         # conn calculated
         self.outl[0].eco_check = True
 
+    def calculate_comp_variables(self, T0):
+        # C_F, C_P
+        self.C_F = np.nan
+        self.C_P = np.nan
+
+        # add c_F c_P, C_D, r and f
+        self.c_F = self.C_F / self.E_F
+        self.c_P = self.C_P / self.E_P
+        self.C_D = self.c_F * self.E_D
+        self.r = (self.c_P - self.c_F) / self.c_F
+        self.f = self.Z_costs / (self.Z_costs + self.C_D)
+
+

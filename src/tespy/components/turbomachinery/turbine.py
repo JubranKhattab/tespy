@@ -536,55 +536,6 @@ class Turbine(Turbomachine):
         self.E_D = self.E_F - self.E_P
         self.epsilon = self.E_P / self.E_F
 
-    def assign_eco_values_conn_to_comp(self):
-        r"""
-        Write all the calculated values from the exergy economic balance to be attributes of the components.
-        That will be used at the end to check that values match.
-
-        Parameters
-        ----------
-
-        """
-        # declare variables to the component
-        c_per_unit, E_streams_tot, C_streams = {}, {}, {}
-        self.exe_eco = {'C_streams': {}, 'c_per_unit': {}, 'E_streams_tot': {}}
-
-        # help Dictionary
-        dict_dicts = {'c_per_unit': c_per_unit, 'E_streams_tot': E_streams_tot, 'C_streams': C_streams}
-
-        # read input values an assign them to the component.
-        for conn in self.inl:
-            # read c from inlet
-            cost_id = f"c_cost_{conn.target_id}"
-            c_per_unit[cost_id] = conn.c_cost
-
-            # read and calculate E from inlet
-            E_id = f"E_TOT_{conn.target_id}"
-            E_streams_tot[E_id] = conn.Ex_physical + conn.Ex_chemical
-
-            # calculate C
-            C_id = f"C_{conn.target_id}"
-            C_streams[C_id] = c_per_unit[cost_id]*E_streams_tot[E_id]
-
-        for conn in self.outl:
-            # declare c for outlet
-            cost_id = f"c_cost_{conn.source_id}"
-            c_per_unit[cost_id] = conn.c_cost
-
-            # read and calculate E from outlet
-            E_id = f"E_TOT_{conn.source_id}"
-            E_streams_tot[E_id] = conn.Ex_physical + conn.Ex_chemical
-
-            # declare C for outlet
-            C_id = f"C_{conn.source_id}"
-            C_streams[C_id] = c_per_unit[cost_id] * E_streams_tot[E_id]
-
-        # add all variables {c, C, E} as attributes for the components.
-        for d in list(dict_dicts.values()):
-            dict_name = list(dict_dicts.keys())[list(dict_dicts.values()).index(d)]
-            for key, value in d.items():
-                self.exe_eco[f"{dict_name}"][f"{key}"] = value
-
     def assign_eco_values_bus(self):
         r"""
         Write the costs related to massless exergy streams to the collection dict of exergy economic values.
@@ -596,7 +547,7 @@ class Turbine(Turbomachine):
         self.exe_eco['C_streams']['C_stream_Power'] = self.C_stream_Power
         self.exe_eco['c_per_unit']['c_cost_Power'] = self.c_cost_Power
 
-    def exergy_economic_balance(self,Exe_Eco):
+    def exergy_economic_balance(self, Exe_Eco):
         r"""
         declare and prepare component's variables c, E, C and Z and calculate exergy economics balance of a component.
 
@@ -632,6 +583,10 @@ class Turbine(Turbomachine):
         Requirement: all necessary input variables are known and calculated previously.
             input variables: Z, E, c and C for all inlets
 
+        The values of the connections (c, C) depend on the purpose for which the component under consideration is used.
+        It does not depend on the parameters (T and p) of the streams 'connections'. The ambient conditions also have no influence on the definition here.
+        In the next step, when calculating the costs associated with the product and fuel, the ambient temperature must be considered.
+        Every stream 'connection' has only one value for the cost per exergy unit
 
         """
         "++Input++"
@@ -663,5 +618,57 @@ class Turbine(Turbomachine):
 
         # conn calculated
         self.outl[0].eco_check = True
-        # ++ add busses in Network when available ++
-        #self.assign_eco_values_bus()
+
+        # add c_f c_p, C_D, r and f
+        # self.calculate_comp_variables()
+
+    def calculate_comp_variables(self, T0):
+        """
+
+        Parameters
+        ----------
+        T0
+
+        Returns
+        -------
+
+        Notes
+        -----
+
+        Every stream 'connection' has only one value for the cost per exergy unit.
+        A distinction can be made between chemical, thermal and mechanical cost streams C like this:
+        .. math::
+
+            \dot{C}_\mathrm{s} = c_s \cdot \dot{E}_\mathrm{s}
+            for s: PH, T, M, CH
+        """
+        # C_F, C_P
+
+        if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
+            # self.E_P = -self.P.val
+            self.C_P = -self.P.val * self.c_cost_Power
+            self.C_F = self.inl[0].Ex_physical * self.inl[0].c_cost - self.outl[0].Ex_physical * self.outl[0].c_cost
+        elif self.inl[0].T.val_SI > T0 and self.outl[0].T.val_SI <= T0:
+            self.C_P = -self.P.val * self.c_cost_Power + self.outl[0].Ex_therm * self.outl[0].c_cost
+            self.C_F = self.inl[0].Ex_therm * self.inl[0].c_cost + (self.inl[0].Ex_mech * self.inl[0].c_cost - self.outl[0].Ex_mech * self.outl[0].c_cost)
+
+        elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
+            self.C_P = -self.P.val * self.c_cost_Power + (self.outl[0].Ex_therm * self.outl[0].c_cost - self.inl[0].Ex_therm * self.inl[0].c_cost)
+            self.C_F = self.inl[0].Ex_mech * self.inl[0].c_cost - self.outl[0].Ex_mech * self.outl[0].c_cost
+        else:
+            msg = ('Exergy economic balance of a turbine, where outlet temperature is '
+                   'larger than inlet temperature is not implmented.')
+            logger.warning(msg)
+            self.C_P = np.nan
+            self.C_F = np.nan
+
+
+        # add c_F c_P, C_D, r and f
+        self.C_F = self.C_F * (3600/10**9)
+        self.C_P = self.C_P * (3600/10**9)
+
+        self.c_F = self.C_F / self.E_F
+        self.c_P = self.C_P / self.E_P
+        self.C_D = self.c_F * self.E_D
+        self.r = (self.c_P - self.c_F) / self.c_F
+        self.f = self.Z_costs / (self.Z_costs + self.C_D)
