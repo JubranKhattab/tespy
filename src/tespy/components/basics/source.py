@@ -210,7 +210,7 @@ class Source(Component):
         # conn calculated
         self.outl[0].eco_check = True
 
-    def calculate_comp_variables(self, T0):
+    def calc_eco_comp_var(self, T0):
         # C_F, C_P
         self.C_F = np.nan
         self.C_P = np.nan

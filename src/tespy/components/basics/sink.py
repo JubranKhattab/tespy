@@ -203,7 +203,7 @@ class Sink(Component):
         self.inl[0].Ex_tot = self.inl[0].Ex_physical + self.inl[0].Ex_chemical  # can be deleted
         self.inl[0].C_stream = self.inl[0].Ex_tot*self.inl[0].c_cost * (3600/10**9)  # can be deleted
 
-    def calculate_comp_variables(self, T0):
+    def calc_eco_comp_var(self, T0):
         # C_F, C_P
         self.C_F = np.nan
         self.C_P = np.nan

@@ -622,7 +622,7 @@ class Turbine(Turbomachine):
         # add c_f c_p, C_D, r and f
         # self.calculate_comp_variables()
 
-    def calculate_comp_variables(self, T0):
+    def calc_eco_comp_var(self, T0):
         """
 
         Parameters
