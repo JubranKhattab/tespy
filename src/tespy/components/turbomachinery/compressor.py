@@ -743,6 +743,7 @@ class Compressor(Turbomachine):
         The values of the connections (c, C) depend on the purpose for which the component under consideration is used.
         It does not depend on the parameters (T and p) of the streams 'connections'. The ambient conditions also have no influence on the definition here.
         In the next step, when calculating the costs associated with the product and fuel, the ambient temperature must be considered.
+        Every stream 'connection' has only one value for the cost per exergy unit
 
 
         """
@@ -776,3 +777,53 @@ class Compressor(Turbomachine):
 
         # conn calculated
         self.outl[0].eco_check = True
+
+    def calc_eco_comp_var(self, T0):
+        """
+
+        Parameters
+        ----------
+        T0
+
+        Returns
+        -------
+
+        Notes
+        -----
+
+        Every stream 'connection' has only one value for the cost per exergy unit.
+        A distinction can be made between chemical, thermal and mechanical cost streams C like this:
+        .. math::
+
+            \dot{C}_\mathrm{s} = c_s \cdot \dot{E}_\mathrm{s}
+            for s: PH, T, M, CH
+        """
+        # C_F, C_P
+        # in:  * self.inl[0].c_cost
+        # out: * self.outl[0].c_cost
+
+        if self.inl[0].T.val_SI >= T0 and self.outl[0].T.val_SI >= T0:
+            self.C_P = self.outl[0].Ex_physical * self.outl[0].c_cost - self.inl[0].Ex_physical * self.inl[0].c_cost
+            self.C_F = self.P.val * self.c_cost_Power
+        elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI > T0:
+            self.C_P = self.outl[0].Ex_therm * self.outl[0].c_cost + (self.outl[0].Ex_mech * self.outl[0].c_cost- self.inl[0].Ex_mech * self.inl[0].c_cost)
+            self.C_F = self.P.val * self.c_cost_Power + self.inl[0].Ex_therm * self.inl[0].c_cost
+        elif self.inl[0].T.val_SI <= T0 and self.outl[0].T.val_SI <= T0:
+            self.C_P = self.outl[0].Ex_mech * self.outl[0].c_cost - self.inl[0].Ex_mech * self.inl[0].c_cost
+            self.C_F = self.P.val * self.c_cost_Power + (self.inl[0].Ex_therm * self.inl[0].c_cost - self.outl[0].Ex_therm * self.outl[0].c_cost)
+        else:
+            msg = ('Exergy balance of a compressor, where outlet temperature '
+                   'is smaller than inlet temperature is not implmented.')
+            logger.warning(msg)
+            self.C_P = np.nan
+            self.C_F = np.nan
+
+        # add c_F c_P, C_D, r and f
+        self.C_F = self.C_F * (3600 / 10 ** 9)
+        self.C_P = self.C_P * (3600 / 10 ** 9)
+
+        self.c_F = self.C_F / self.E_F
+        self.c_P = self.C_P / self.E_P
+        self.C_D = self.c_F * self.E_D
+        self.r = (self.c_P - self.c_F) / self.c_F
+        self.f = self.Z_costs / (self.Z_costs + self.C_D)
