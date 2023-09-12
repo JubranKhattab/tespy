@@ -512,7 +512,6 @@ class ExergyAnalysis:
                 'component and network exergy data and check, if network is '
                 'properly setup for the exergy analysis.')
             logger.error(msg)
-
         exe_eco_hlp.comp_print_exe_eco(self)
         self.create_group_data()
 

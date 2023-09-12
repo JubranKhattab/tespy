@@ -288,9 +288,11 @@ def conn_print_exe_eco(self):
 
 def comp_print_exe_eco(self):
     # todo: add c_f c_p, C_D, r and f
+    var_list = ['C_F', 'C_P', 'c_F', 'c_P', 'C_D', 'Z_costs', 'r', 'f']
+
     for comp in self.nw.comps['object']:
-        comp_exergy_eco_data = [comp.Z_costs]
-        self.component_data.loc[comp.label, ['Z']] = comp_exergy_eco_data
+        comp_exergy_eco_data = [getattr(comp, var) for var in var_list]
+        self.component_data.loc[comp.label, var_list] = comp_exergy_eco_data
 
 
 #  todo: convert unit with function, check if C_P = Z + C_F for every component
