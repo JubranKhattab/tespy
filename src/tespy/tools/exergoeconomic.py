@@ -20,8 +20,8 @@ def init_cost_per_exergy_unit(conn, Exe_Eco):
 
     """
     if Exe_Eco is not None:
-        # the variable c_cost is declared for every connection
-        conn.c_cost = np.nan
+        # the variable c_tot is declared for every connection
+        conn.c_tot = np.nan
         if conn.source.__class__.__name__ == "Source":
             so_label = conn.source.label + '_c'
             if so_label not in Exe_Eco or Exe_Eco[so_label] is None:
@@ -30,7 +30,7 @@ def init_cost_per_exergy_unit(conn, Exe_Eco):
                 logger.error(msg)
                 raise TESPyConnectionError(msg)
             else:
-                conn.c_cost = Exe_Eco[so_label]
+                conn.c_tot = Exe_Eco[so_label]
 
 
 def check_input_dict(self, Exe_Eco):
@@ -73,7 +73,7 @@ def check_input_dict(self, Exe_Eco):
         logger.error(msg)
         raise TESPyConnectionError(msg)
 
-    # for busses
+    # for busses - not used
     values = [value for key, value in Exe_Eco.items() if isinstance(value, str)]
     all_comps_c = {item + "_c" for item in all_comps}
     missing_values = list(set(values) - all_comps_c)
@@ -95,7 +95,7 @@ def create_components_df(self):
     For pumps and compressors the number of input connections is increased by 1 because of the input power.
       If the input power costs is entered from the user as a value, the known number of connection cost is increased by 1 as well.
       If the input power costs is assign to a turbine, this cost should be calculated from the turbine first, before applying the exergy economic balance
-      on the pumps and compressors
+      on the pumps and compressors - this case is not implemented to the end. every power cost should be entered from the user for pumps and compressors
 
     The function returns also a list of all sources to assign the source stream costs to the linked connection.
     Parameters
@@ -145,29 +145,29 @@ def assign_eco_values_conn_to_comp(self):
     # read input values an assign them to the component.
     for conn in self.inl:
         # read c from inlet
-        cost_id = f"c_cost_{conn.target_id}"
-        c_per_unit[cost_id] = conn.c_cost
+        cost_id = f"c_tot_{conn.target_id}"
+        c_per_unit[cost_id] = conn.c_tot
 
         # read and calculate E from inlet
-        E_id = f"E_TOT_{conn.target_id}"
+        E_id = f"E_tot_{conn.target_id}"
         E_streams_tot[E_id] = conn.Ex_physical + conn.Ex_chemical
 
         # calculate C
-        C_id = f"C_{conn.target_id}"
-        C_streams[C_id] = c_per_unit[cost_id]*E_streams_tot[E_id]
+        C_id = f"C_tot_{conn.target_id}"
+        C_streams[C_id] = c_per_unit[cost_id]*E_streams_tot[E_id] * (3600 / 10 ** 9)
 
     for conn in self.outl:
         # declare c for outlet
-        cost_id = f"c_cost_{conn.source_id}"
-        c_per_unit[cost_id] = conn.c_cost
+        cost_id = f"c_tot_{conn.source_id}"
+        c_per_unit[cost_id] = conn.c_tot
 
         # read and calculate E from outlet
-        E_id = f"E_TOT_{conn.source_id}"
+        E_id = f"E_tot_{conn.source_id}"
         E_streams_tot[E_id] = conn.Ex_physical + conn.Ex_chemical
 
         # declare C for outlet
-        C_id = f"C_{conn.source_id}"
-        C_streams[C_id] = c_per_unit[cost_id] * E_streams_tot[E_id]
+        C_id = f"C_tot_{conn.source_id}"
+        C_streams[C_id] = c_per_unit[cost_id] * E_streams_tot[E_id] * (3600 / 10 ** 9)
 
     # add all variables {c, C, E} as attributes for the components.
     for d in list(dict_dicts.values()):
@@ -214,6 +214,7 @@ def find_next_component(cp_df, checked_conn):
 
 def define_bus_cost(self, Exe_Eco):
     """
+    --- not used ---
     declare a class for every added bus that helps to assign the associated costs with the bus. The attributes of this class are:
         inl: list of all components that generate power and feed it in the bus like turbines. These are named here input components
 
@@ -282,8 +283,12 @@ class Bus_cost:
 
 def conn_print_exe_eco(self):
     for conn in self.nw.conns['object']:
-        conn_exergy_eco_data = [conn.c_cost, conn.C_stream]
-        self.connection_data.loc[conn.label, ['c_cost', 'C_stream']] = conn_exergy_eco_data
+        conn_exergy_eco_data = [conn.c_physical,conn.c_therm, conn.c_mech,conn.c_chemical,
+                                conn.C_physical,conn.C_therm, conn.C_mech,conn.C_chemical,
+                                conn.c_tot, conn.C_tot]
+        self.connection_data.loc[conn.label, ['c_PH', 'c_T', 'c_M', 'c_CH',
+                                              'C_PH', 'C_T', 'C_M', 'C_CH',
+                                              'c_tot', 'C_tot']] = conn_exergy_eco_data
 
 
 def comp_print_exe_eco(self):

@@ -440,21 +440,17 @@ class ExergyAnalysis:
             so_list, cp_df = exe_eco_hlp.create_components_df(self)
             for so in so_list:
                 so.exergy_economic_balance(Exe_Eco)  # specific for every component
-                # so.assign_eco_values_conn_to_comp()  # can be general function
                 exe_eco_hlp.assign_eco_values_conn_to_comp(so)  # is now general function, delete from components
-                so.calc_eco_comp_var(Tamb_SI)
             # exergy economic balance of components
             checked_conn = []
             while not cp_df.empty:
                 # cp_df, ready_cp = self.find_next_component(cp_df)
                 cp_df, ready_cp = exe_eco_hlp.find_next_component(cp_df, checked_conn)
                 for cp in ready_cp:
-                    cp.exergy_economic_balance(Exe_Eco)  # specific for every component
-                    # cp.assign_eco_values_conn_to_comp()  # can be general function
+                    cp.exergy_economic_balance(Exe_Eco, Tamb_SI)  # specific for every component
                     exe_eco_hlp.assign_eco_values_conn_to_comp(cp)  # is now general function, delete from components
                     if hasattr(cp, 'eco_bus_value'):
                         cp.assign_eco_values_bus()  # specific for every component
-                    cp.calc_eco_comp_var(Tamb_SI)
             exe_eco_hlp.conn_print_exe_eco(self)
         """++++++++"""
 

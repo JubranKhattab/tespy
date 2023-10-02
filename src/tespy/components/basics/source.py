@@ -113,55 +113,6 @@ class Source(Component):
         self.E_D = np.nan
         self.epsilon = np.nan
 
-    def assign_eco_values_conn_to_comp(self):
-        r"""
-        Write all the calculated values from the exergy economic balance to be attributes of the components.
-        That will be used at the end to check that values match.
-
-        Parameters
-        ----------
-
-        """
-        # declare variables to the component
-        c_per_unit, E_streams_tot, C_streams = {}, {}, {}
-        self.exe_eco = {'C_streams': {}, 'c_per_unit': {}, 'E_streams_tot': {}}
-
-        # help Dictionary
-        dict_dicts = {'c_per_unit': c_per_unit, 'E_streams_tot': E_streams_tot, 'C_streams': C_streams}
-
-        # read input values an assign them to the component.
-        for conn in self.inl:
-            # read c from inlet
-            cost_id = f"c_cost_{conn.target_id}"
-            c_per_unit[cost_id] = conn.c_cost
-
-            # read and calculate E from inlet
-            E_id = f"E_TOT_{conn.target_id}"
-            E_streams_tot[E_id] = conn.Ex_physical + conn.Ex_chemical
-
-            # calculate C
-            C_id = f"C_{conn.target_id}"
-            C_streams[C_id] = c_per_unit[cost_id]*E_streams_tot[E_id]
-
-        for conn in self.outl:
-            # declare c for outlet
-            cost_id = f"c_cost_{conn.source_id}"
-            c_per_unit[cost_id] = conn.c_cost
-
-            # read and calculate E from outlet
-            E_id = f"E_TOT_{conn.source_id}"
-            E_streams_tot[E_id] = conn.Ex_physical + conn.Ex_chemical
-
-            # declare C for outlet
-            C_id = f"C_{conn.source_id}"
-            C_streams[C_id] = c_per_unit[cost_id] * E_streams_tot[E_id]
-
-        # add all variables {c, C, E} as attributes for the components.
-        for d in list(dict_dicts.values()):
-            dict_name = list(dict_dicts.keys())[list(dict_dicts.values()).index(d)]
-            for key, value in d.items():
-                self.exe_eco[f"{dict_name}"][f"{key}"] = value
-
     def exergy_economic_balance(self,Exe_Eco):
         r"""
         declare and prepare component's variables c, E, C and Z and calculate exergy economics balance of a component.
@@ -197,6 +148,10 @@ class Source(Component):
 
 
         """
+        # convert units
+        unit_C = (3600 / 10 ** 9)
+        unit_c = (10 ** 9 / 3600)
+
         "++Input++"
         # assign Z to be an attribute for the component
         Z_id = f"{self.label}_Z"
@@ -205,21 +160,30 @@ class Source(Component):
         "++Output++"
         # calculate outlet
         self.outl[0].Ex_tot = self.outl[0].Ex_physical + self.outl[0].Ex_chemical
-        self.outl[0].C_stream = self.outl[0].c_cost * self.outl[0].Ex_tot * (3600/10**9)
+        self.outl[0].C_tot = self.outl[0].c_tot * self.outl[0].Ex_tot * unit_C
 
-        # conn calculated
-        self.outl[0].eco_check = True
+        # approx costs per exergy unit fot T,M, PH and CH
+        self.outl[0].C_therm = self.outl[0].C_tot * (self.outl[0].Ex_therm / self.outl[0].Ex_tot)
+        self.outl[0].C_mech = self.outl[0].C_tot * (self.outl[0].Ex_mech / self.outl[0].Ex_tot)
+        self.outl[0].C_physical = self.outl[0].C_tot * (self.outl[0].Ex_physical / self.outl[0].Ex_tot)
+        self.outl[0].C_chemical = self.outl[0].C_tot * (self.outl[0].Ex_chemical / self.outl[0].Ex_tot)
 
-    def calc_eco_comp_var(self, T0):
-        # C_F, C_P
+        self.outl[0].c_therm = self.outl[0].C_therm / self.outl[0].Ex_therm * unit_c
+        self.outl[0].c_mech = self.outl[0].C_mech / self.outl[0].Ex_mech * unit_c
+        self.outl[0].c_physical = self.outl[0].C_physical / self.outl[0].Ex_physical * unit_c
+        self.outl[0].c_chemical = self.outl[0].C_chemical / self.outl[0].Ex_chemical * unit_c
+
+        self.outl[0].c_tot = self.outl[0].C_tot / self.outl[0].Ex_tot * (10**9 / 3600)
+
         self.C_F = np.nan
         self.C_P = np.nan
-
-        # add c_F c_P, C_D, r and f
         self.c_F = self.C_F / self.E_F
         self.c_P = self.C_P / self.E_P
         self.C_D = self.c_F * self.E_D
         self.r = (self.c_P - self.c_F) / self.c_F
         self.f = self.Z_costs / (self.Z_costs + self.C_D)
+
+        # conn calculated
+        self.outl[0].eco_check = True
 
 
