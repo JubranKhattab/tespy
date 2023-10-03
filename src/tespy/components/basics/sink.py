@@ -162,4 +162,4 @@ class Sink(Component):
         self.f = self.Z_costs / (self.Z_costs + self.C_D)
 
         # conn calculated
-        self.outl[0].eco_check = True
+        #self.outl[0].eco_check = True

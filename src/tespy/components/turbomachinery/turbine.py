@@ -627,15 +627,17 @@ class Turbine(Turbomachine):
         unit_C = (3600 / 10 ** 9)
         unit_c = (10 ** 9 / 3600)
 
+        # unaffected chemical exergy
+        self.outl[0].c_chemical = self.inl[0].c_chemical
+        self.outl[0].C_chemical = self.inl[0].C_chemical
+
         # F principle
         self.outl[0].c_therm = self.inl[0].c_therm
         self.outl[0].c_mech = self.inl[0].c_mech
-        self.outl[0].c_chemical = self.inl[0].c_chemical
 
         # costs streams associated with the fuel
         self.outl[0].C_therm = self.outl[0].c_therm * self.outl[0].Ex_therm * unit_C
         self.outl[0].C_mech = self.outl[0].c_mech * self.outl[0].Ex_mech * unit_C
-        self.outl[0].C_chemical = self.inl[0].C_chemical
 
         # fuel costs
         self.C_F = (self.inl[0].C_therm + self.inl[0].C_mech) - (self.outl[0].C_therm + self.outl[0].C_mech)
@@ -665,13 +667,15 @@ class Turbine(Turbomachine):
         unit_C = (3600 / 10 ** 9)
         unit_c = (10 ** 9 / 3600)
 
+        # unaffected chemical exergy
+        self.outl[0].c_chemical = self.inl[0].c_chemical
+        self.outl[0].C_chemical = self.inl[0].C_chemical
+
         # F principle
         self.outl[0].c_mech = self.inl[0].c_mech
-        self.outl[0].c_chemical = self.inl[0].c_chemical
 
         # costs streams associated with the fuel
         self.outl[0].C_mech = self.outl[0].c_mech * self.outl[0].Ex_mech * unit_C
-        self.outl[0].C_chemical = self.inl[0].C_chemical
 
         # fuel costs
         self.C_F = (self.inl[0].C_therm + self.inl[0].C_mech) - (self.outl[0].C_mech)
@@ -703,13 +707,15 @@ class Turbine(Turbomachine):
         unit_C = (3600 / 10 ** 9)
         unit_c = (10 ** 9 / 3600)
 
+        # unaffected chemical exergy
+        self.outl[0].c_chemical = self.inl[0].c_chemical
+        self.outl[0].C_chemical = self.inl[0].C_chemical
+
         # F principle
         self.outl[0].c_mech = self.inl[0].c_mech
-        self.outl[0].c_chemical = self.inl[0].c_chemical
 
         # costs streams associated with the fuel
         self.outl[0].C_mech = self.outl[0].c_mech * self.outl[0].Ex_mech * unit_C
-        self.outl[0].C_chemical = self.inl[0].C_chemical
 
         # fuel costs
         self.C_F = (self.inl[0].C_mech) - (self.outl[0].C_mech)
