@@ -434,7 +434,7 @@ class ExergyAnalysis:
             # check entered dict for inputs costs
             Exe_Eco = exe_eco_hlp.check_input_dict(self, Exe_Eco)
             # prepare busses
-            exe_eco_hlp.define_bus_cost(self, Exe_Eco)
+            # exe_eco_hlp.define_bus_cost(self, Exe_Eco)  #  not implemented for all cases yet. Not in use, currently not necessary
 
             # so_list, cp_df = self.create_components_df()
             so_list, cp_df = exe_eco_hlp.create_components_df(self)
@@ -508,7 +508,8 @@ class ExergyAnalysis:
                 'component and network exergy data and check, if network is '
                 'properly setup for the exergy analysis.')
             logger.error(msg)
-        exe_eco_hlp.comp_print_exe_eco(self)
+        if Exe_Eco is not None:
+            exe_eco_hlp.comp_print_exe_eco(self)
         self.create_group_data()
 
     def evaluate_busses(self, cp):

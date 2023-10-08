@@ -214,7 +214,7 @@ def find_next_component(cp_df, checked_conn):
 
 def define_bus_cost(self, Exe_Eco):
     """
-    --- not used ---
+    --- **** not used **** ---
     declare a class for every added bus that helps to assign the associated costs with the bus. The attributes of this class are:
         inl: list of all components that generate power and feed it in the bus like turbines. These are named here input components
 
