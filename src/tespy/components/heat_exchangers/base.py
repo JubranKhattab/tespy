@@ -1037,3 +1037,385 @@ class HeatExchanger(Component):
                 'ending_point_property': 'v',
                 'ending_point_value': self.outl[i].vol.val
             } for i in range(2)}
+
+    def exergy_economic_balance(self, Exe_Eco, T0):
+        r"""
+        declare and prepare component's variables c, E, C and Z and calculate exergy economics balance of a component.
+
+        c: cost per exergy unit to every connection.
+        E: Sum of exergy streams to each inlet and outlet connection.
+        C: Cost stream to every connection.
+        Z: Sum of leveled capital investment costs 'CI' and operating and maintenance costs 'OM'.
+
+        For inlets:
+            c is known from previous components for thermal, mechanical, physical and chemical
+            Z is given as input.
+            E is calculated previously in connection functions for thermal, mechanical, physical and chemical
+            C is calculated by Exergy-Costing principle for thermal, mechanical, physical and chemical
+
+        For outlets:
+            E is calculated previously in connection functions for thermal, mechanical, physical and chemical
+            C is calculated by Exergy-Costing principle for thermal, mechanical, physical and chemical
+            c is calculated by Exergy-Costing principle for thermal, mechanical, physical and chemical
+
+        Units
+            c [ / GJ]
+            Z [ / h]
+            E [ W ]
+            C [ / h]
+
+        Parameters
+        ----------
+        Exe_Eco: dict
+            Contains c for all sources as well as all Z for every component or component group in the network.
+
+        Note
+        ----
+        Requirement: all necessary input variables are known and calculated previously.
+            input variables: Z, E, c and C for all inlets for thermal, mechanical, physical and chemical.
+
+        The values of the connections (c, C) depend on the purpose for which the component under consideration is used and the ambient conditions.
+        For each connection at the output, the costs per unit of exergy as well as the cost streams are calculated. This applies to the components (thermal, mechanical, physical and chemical).
+        The total cost stream and the associated costs per exergy unit are then determined.
+        The F and P principles are required for this.
+        The cases are taken from the exergy balance function.
+
+        """
+
+        # assign Z to be an attribute for the component
+        Z_id = f"{self.label}_Z"
+        self.Z_costs = Exe_Eco[f"{Z_id}"]
+
+        # sum exergy streams of outlets
+        self.outl[0].Ex_tot = self.outl[0].Ex_physical + self.outl[0].Ex_chemical
+        self.outl[1].Ex_tot = self.outl[1].Ex_physical + self.outl[1].Ex_chemical
+
+        "++cases++"
+        if all([c.T.val_SI > T0 for c in self.inl + self.outl]):
+            self.case_one()
+
+        elif all([c.T.val_SI <= T0 for c in self.inl + self.outl]):
+            self.case_two()
+
+        elif (self.inl[0].T.val_SI > T0 and self.outl[1].T.val_SI > T0 and
+              self.outl[0].T.val_SI <= T0 and self.inl[1].T.val_SI <= T0):
+            self.case_three()
+
+        elif (self.inl[0].T.val_SI > T0 and self.inl[1].T.val_SI <= T0 and
+              self.outl[0].T.val_SI <= T0 and self.outl[1].T.val_SI <= T0):
+            self.case_four()
+
+        elif (self.inl[0].T.val_SI > T0 and self.inl[1].T.val_SI <= T0 and
+              self.outl[0].T.val_SI > T0 and self.outl[1].T.val_SI > T0):
+            self.case_five()
+
+        elif (self.inl[0].T.val_SI > T0 and self.inl[1].T.val_SI <= T0 and
+              self.outl[0].T.val_SI > T0 and self.outl[1].T.val_SI <= T0):
+            self.case_six()
+
+        self.C_D = self.c_F * self.E_D * (3600 / 10 ** 9)
+        self.r = 100 * (self.c_P - self.c_F) / self.c_F
+        self.f = 100 * self.Z_costs / (self.Z_costs + self.C_D)
+
+        # conn calculated
+        self.outl[0].eco_check = True
+        self.outl[1].eco_check = True
+
+    def case_one(self):
+        """all([c.T.val_SI > T0 for c in self.inl + self.outl])"""
+        # convert units
+        unit_C = (3600 / 10 ** 9)
+        unit_c = (10 ** 9 / 3600)
+
+        # unaffected chemical exergy
+        self.outl[0].c_chemical = self.inl[0].c_chemical
+        self.outl[1].c_chemical = self.inl[1].c_chemical
+        self.outl[0].C_chemical = self.inl[0].C_chemical
+        self.outl[1].C_chemical = self.inl[1].C_chemical
+
+        # F principle
+        self.outl[0].c_therm = self.inl[0].c_therm
+        self.outl[0].c_mech = self.inl[0].c_mech
+        self.outl[1].c_mech = self.inl[1].c_mech
+
+        # [outlets] costs streams associated with the fuel (power and [T, M, CH])
+        self.outl[0].C_therm = self.outl[0].c_therm * self.outl[0].Ex_therm * unit_C
+        self.outl[0].C_mech = self.outl[0].c_mech * self.outl[0].Ex_mech * unit_C
+        self.outl[1].C_mech = self.outl[1].c_mech * self.outl[1].Ex_mech * unit_C
+
+        # fuel costs
+        self.C_F = (self.inl[0].C_mech + self.inl[0].C_therm) - (self.outl[0].C_mech + self.outl[0].C_therm) + (self.inl[1].C_mech - self.outl[1].C_mech)
+        self.c_F = self.C_F / self.E_F * unit_c
+
+        # product costs
+        self.C_P = self.C_F + self.Z_costs
+        self.c_P = self.C_P / self.E_P * unit_c
+
+        # [outlets] costs streams associated with the product with P principle (power and [T, M, CH])
+        self.outl[1].C_therm = self.c_P * (self.outl[1].Ex_therm - self.inl[1].Ex_therm) * unit_C + self.inl[1].C_therm
+
+        # costs per exergy unit for outlets streams associated with the product (power and [T, M, CH])
+        self.outl[1].c_therm = self.outl[1].C_therm / self.outl[1].Ex_therm * unit_c
+
+        # physical costs streams for all outlets
+        self.outl[0].C_physical = self.outl[0].C_therm + self.outl[0].C_mech
+        self.outl[1].C_physical = self.outl[1].C_therm + self.outl[1].C_mech
+        self.outl[0].c_physical = self.outl[0].C_physical / self.outl[0].Ex_physical * unit_c
+        self.outl[1].c_physical = self.outl[1].C_physical / self.outl[1].Ex_physical * unit_c
+
+        # average costs for outlets
+        self.outl[0].C_tot = self.outl[0].C_physical + self.outl[0].C_chemical
+        self.outl[1].C_tot = self.outl[1].C_physical + self.outl[1].C_chemical
+        self.outl[0].c_tot = self.outl[0].C_tot / self.outl[0].Ex_tot * unit_c
+        self.outl[1].c_tot = self.outl[1].C_tot / self.outl[1].Ex_tot * unit_c
+
+    def case_two(self):
+        """all([c.T.val_SI <= T0 for c in self.inl + self.outl])"""
+        # convert units
+        unit_C = (3600 / 10 ** 9)
+        unit_c = (10 ** 9 / 3600)
+
+        # unaffected chemical exergy
+        self.outl[0].c_chemical = self.inl[0].c_chemical
+        self.outl[1].c_chemical = self.inl[1].c_chemical
+        self.outl[0].C_chemical = self.inl[0].C_chemical
+        self.outl[1].C_chemical = self.inl[1].C_chemical
+
+        # F principle
+        self.outl[1].c_therm = self.inl[1].c_therm
+        self.outl[1].c_mech = self.inl[1].c_mech
+        self.outl[0].c_mech = self.inl[0].c_mech
+
+        # [outlets] costs streams associated with the fuel (power and [T, M, CH])
+        self.outl[1].C_therm = self.outl[1].c_therm * self.outl[1].Ex_therm * unit_C
+        self.outl[1].C_mech = self.outl[1].c_mech * self.outl[1].Ex_mech * unit_C
+        self.outl[0].C_mech = self.outl[0].c_mech * self.outl[0].Ex_mech * unit_C
+
+        # fuel costs
+        self.C_F = (self.inl[1].C_mech + self.inl[1].C_therm) - (self.outl[1].C_mech + self.outl[1].C_therm) + (self.inl[0].C_mech - self.outl[0].C_mech)
+        self.c_F = self.C_F / self.E_F * unit_c
+
+        # product costs
+        self.C_P = self.C_F + self.Z_costs
+        self.c_P = self.C_P / self.E_P * unit_c
+
+        # [outlets] costs streams associated with the product with P principle (power and [T, M, CH])
+        self.outl[0].C_therm = self.c_P * (self.outl[0].Ex_therm - self.inl[0].Ex_therm) * unit_C + self.inl[0].C_therm
+
+        # costs per exergy unit for outlets streams associated with the product (power and [T, M, CH])
+        self.outl[0].c_therm = self.outl[0].C_therm / self.outl[0].Ex_therm * unit_c
+
+        # physical costs streams for all outlets
+        self.outl[0].C_physical = self.outl[0].C_therm + self.outl[0].C_mech
+        self.outl[1].C_physical = self.outl[1].C_therm + self.outl[1].C_mech
+        self.outl[0].c_physical = self.outl[0].C_physical / self.outl[0].Ex_physical * unit_c
+        self.outl[1].c_physical = self.outl[1].C_physical / self.outl[1].Ex_physical * unit_c
+
+        # average costs for outlets
+        self.outl[0].C_tot = self.outl[0].C_physical + self.outl[0].C_chemical
+        self.outl[1].C_tot = self.outl[1].C_physical + self.outl[1].C_chemical
+        self.outl[0].c_tot = self.outl[0].C_tot / self.outl[0].Ex_tot * unit_c
+        self.outl[1].c_tot = self.outl[1].C_tot / self.outl[1].Ex_tot * unit_c
+
+    def case_three(self):
+        """(self.inl[0].T.val_SI > T0 and self.outl[1].T.val_SI > T0 and
+              self.outl[0].T.val_SI <= T0 and self.inl[1].T.val_SI <= T0)"""
+        # convert units
+        unit_C = (3600 / 10 ** 9)
+        unit_c = (10 ** 9 / 3600)
+
+        # unaffected chemical exergy
+        self.outl[0].c_chemical = self.inl[0].c_chemical
+        self.outl[1].c_chemical = self.inl[1].c_chemical
+        self.outl[0].C_chemical = self.inl[0].C_chemical
+        self.outl[1].C_chemical = self.inl[1].C_chemical
+
+        # F principle
+        self.outl[0].c_mech = self.inl[0].c_mech
+        self.outl[1].c_mech = self.inl[1].c_mech
+
+        # [outlets] costs streams associated with the fuel (power and [T, M, CH])
+        self.outl[0].C_mech = self.outl[0].c_mech * self.outl[0].Ex_mech * unit_C
+        self.outl[1].C_mech = self.outl[1].c_mech * self.outl[1].Ex_mech * unit_C
+
+        # fuel costs
+        self.C_F = (self.inl[1].C_therm + self.inl[0].C_therm) + (self.inl[1].C_mech - self.outl[1].C_mech) + (self.inl[0].C_mech - self.outl[0].C_mech)
+        self.c_F = self.C_F / self.E_F * unit_c
+
+        # product costs
+        self.C_P = self.C_F + self.Z_costs
+        self.c_P = self.C_P / self.E_P * unit_c
+
+        # [outlets] costs streams associated with the product with P principle (power and [T, M, CH])
+        self.outl[0].C_therm = self.c_P * self.outl[0].Ex_therm * unit_C
+        self.outl[1].C_therm = self.c_P * self.outl[1].Ex_therm * unit_C
+
+        # costs per exergy unit for outlets streams associated with the product (power and [T, M, CH])
+        self.outl[0].c_therm = self.outl[0].C_therm / self.outl[0].Ex_therm * unit_c
+        self.outl[1].c_therm = self.outl[1].C_therm / self.outl[1].Ex_therm * unit_c
+
+        # physical costs streams for all outlets
+        self.outl[0].C_physical = self.outl[0].C_therm + self.outl[0].C_mech
+        self.outl[1].C_physical = self.outl[1].C_therm + self.outl[1].C_mech
+        self.outl[0].c_physical = self.outl[0].C_physical / self.outl[0].Ex_physical * unit_c
+        self.outl[1].c_physical = self.outl[1].C_physical / self.outl[1].Ex_physical * unit_c
+
+        # average costs for outlets
+        self.outl[0].C_tot = self.outl[0].C_physical + self.outl[0].C_chemical
+        self.outl[1].C_tot = self.outl[1].C_physical + self.outl[1].C_chemical
+        self.outl[0].c_tot = self.outl[0].C_tot / self.outl[0].Ex_tot * unit_c
+        self.outl[1].c_tot = self.outl[1].C_tot / self.outl[1].Ex_tot * unit_c
+
+    def case_four(self):
+        """(self.inl[0].T.val_SI > T0 and self.inl[1].T.val_SI <= T0 and
+              self.outl[0].T.val_SI <= T0 and self.outl[1].T.val_SI <= T0)"""
+        # convert units
+        unit_C = (3600 / 10 ** 9)
+        unit_c = (10 ** 9 / 3600)
+
+        # unaffected chemical exergy
+        self.outl[0].c_chemical = self.inl[0].c_chemical
+        self.outl[1].c_chemical = self.inl[1].c_chemical
+        self.outl[0].C_chemical = self.inl[0].C_chemical
+        self.outl[1].C_chemical = self.inl[1].C_chemical
+
+        # F principle
+        self.outl[0].c_mech = self.inl[0].c_mech
+        self.outl[1].c_mech = self.inl[1].c_mech
+        self.outl[1].c_therm = self.inl[1].c_therm
+
+        # [outlets] costs streams associated with the fuel (power and [T, M, CH])
+        self.outl[0].C_mech = self.outl[0].c_mech * self.outl[0].Ex_mech * unit_C
+        self.outl[1].C_mech = self.outl[1].c_mech * self.outl[1].Ex_mech * unit_C
+        self.outl[1].C_therm = self.outl[1].c_therm * self.outl[1].Ex_therm * unit_C
+
+        # fuel costs
+        self.C_F = self.inl[0].C_therm + ((self.inl[1].C_mech + self.inl[1].C_therm) - (self.outl[1].C_mech + self.outl[1].C_therm)) + (self.inl[0].C_mech - self.outl[0].C_mech)
+        self.c_F = self.C_F / self.E_F * unit_c
+
+        # product costs
+        self.C_P = self.C_F + self.Z_costs
+        self.c_P = self.C_P / self.E_P * unit_c
+
+        # [outlets] costs streams associated with the product with P principle (power and [T, M, CH])
+        self.outl[0].C_therm = self.c_P * self.outl[0].Ex_therm * unit_C
+
+        # costs per exergy unit for outlets streams associated with the product (power and [T, M, CH])
+        self.outl[0].c_therm = self.outl[0].C_therm / self.outl[0].Ex_therm * unit_c
+
+        # physical costs streams for all outlets
+        self.outl[0].C_physical = self.outl[0].C_therm + self.outl[0].C_mech
+        self.outl[1].C_physical = self.outl[1].C_therm + self.outl[1].C_mech
+        self.outl[0].c_physical = self.outl[0].C_physical / self.outl[0].Ex_physical * unit_c
+        self.outl[1].c_physical = self.outl[1].C_physical / self.outl[1].Ex_physical * unit_c
+
+        # average costs for outlets
+        self.outl[0].C_tot = self.outl[0].C_physical + self.outl[0].C_chemical
+        self.outl[1].C_tot = self.outl[1].C_physical + self.outl[1].C_chemical
+        self.outl[0].c_tot = self.outl[0].C_tot / self.outl[0].Ex_tot * unit_c
+        self.outl[1].c_tot = self.outl[1].C_tot / self.outl[1].Ex_tot * unit_c
+
+    def case_five(self):
+        """(self.inl[0].T.val_SI > T0 and self.inl[1].T.val_SI <= T0 and
+              self.outl[0].T.val_SI > T0 and self.outl[1].T.val_SI > T0)"""
+        # convert units
+        unit_C = (3600 / 10 ** 9)
+        unit_c = (10 ** 9 / 3600)
+
+        # unaffected chemical exergy
+        self.outl[0].c_chemical = self.inl[0].c_chemical
+        self.outl[1].c_chemical = self.inl[1].c_chemical
+        self.outl[0].C_chemical = self.inl[0].C_chemical
+        self.outl[1].C_chemical = self.inl[1].C_chemical
+
+        # F principle
+        self.outl[0].c_mech = self.inl[0].c_mech
+        self.outl[1].c_mech = self.inl[1].c_mech
+        self.outl[0].c_therm = self.inl[0].c_therm
+
+        # [outlets] costs streams associated with the fuel (power and [T, M, CH])
+        self.outl[0].C_mech = self.outl[0].c_mech * self.outl[0].Ex_mech * unit_C
+        self.outl[1].C_mech = self.outl[1].c_mech * self.outl[1].Ex_mech * unit_C
+        self.outl[0].C_therm = self.outl[0].c_therm * self.outl[0].Ex_therm * unit_C
+
+        # fuel costs
+        self.C_F = self.inl[1].C_therm + ((self.inl[0].C_mech + self.inl[0].C_therm) - (self.outl[0].C_mech + self.outl[0].C_therm)) + (self.inl[1].C_mech - self.outl[1].C_mech)
+        self.c_F = self.C_F / self.E_F * unit_c
+
+        # product costs
+        self.C_P = self.C_F + self.Z_costs
+        self.c_P = self.C_P / self.E_P * unit_c
+
+        # [outlets] costs streams associated with the product with P principle (power and [T, M, CH])
+        self.outl[1].C_therm = self.c_P * self.outl[1].Ex_therm * unit_C
+
+        # costs per exergy unit for outlets streams associated with the product (power and [T, M, CH])
+        self.outl[1].c_therm = self.outl[1].C_therm / self.outl[1].Ex_therm * unit_c
+
+        # physical costs streams for all outlets
+        self.outl[0].C_physical = self.outl[0].C_therm + self.outl[0].C_mech
+        self.outl[1].C_physical = self.outl[1].C_therm + self.outl[1].C_mech
+        self.outl[0].c_physical = self.outl[0].C_physical / self.outl[0].Ex_physical * unit_c
+        self.outl[1].c_physical = self.outl[1].C_physical / self.outl[1].Ex_physical * unit_c
+
+        # average costs for outlets
+        self.outl[0].C_tot = self.outl[0].C_physical + self.outl[0].C_chemical
+        self.outl[1].C_tot = self.outl[1].C_physical + self.outl[1].C_chemical
+        self.outl[0].c_tot = self.outl[0].C_tot / self.outl[0].Ex_tot * unit_c
+        self.outl[1].c_tot = self.outl[1].C_tot / self.outl[1].Ex_tot * unit_c
+
+    def case_six(self):
+        """(self.inl[0].T.val_SI > T0 and self.inl[1].T.val_SI <= T0 and
+              self.outl[0].T.val_SI > T0 and self.outl[1].T.val_SI <= T0)
+              dissipative component"""
+        # convert units
+        unit_C = (3600 / 10 ** 9)
+        unit_c = (10 ** 9 / 3600)
+
+        # unaffected chemical exergy
+        self.outl[0].c_chemical = self.inl[0].c_chemical
+        self.outl[1].c_chemical = self.inl[1].c_chemical
+        self.outl[0].C_chemical = self.inl[0].C_chemical
+        self.outl[1].C_chemical = self.inl[1].C_chemical
+
+        # F principle
+        self.outl[0].c_mech = self.inl[0].c_mech
+        self.outl[1].c_mech = self.inl[1].c_mech
+        self.outl[0].c_therm = self.inl[0].c_therm
+        self.outl[1].c_therm = self.inl[1].c_therm
+
+        # [outlets] costs streams associated with the fuel (power and [T, M, CH])
+        self.outl[0].C_mech = self.outl[0].c_mech * self.outl[0].Ex_mech * unit_C
+        self.outl[1].C_mech = self.outl[1].c_mech * self.outl[1].Ex_mech * unit_C
+        self.outl[0].C_therm = self.outl[0].c_therm * self.outl[0].Ex_therm * unit_C
+        self.outl[1].C_therm = self.outl[1].c_therm * self.outl[1].Ex_therm * unit_C
+
+        # fuel costs
+        self.C_F = ((self.inl[0].C_mech + self.inl[0].C_therm) - (self.outl[0].C_mech + self.outl[0].C_therm)) + \
+                   ((self.inl[1].C_mech + self.inl[1].C_therm) - (self.outl[1].C_mech + self.outl[1].C_therm))
+        self.c_F = self.C_F / self.E_F * unit_c
+
+        # product costs
+        self.C_P = self.C_F + self.Z_costs
+        self.c_P = self.C_P / self.E_P * unit_c
+
+        # [outlets] costs streams associated with the product with P principle (power and [T, M, CH])
+
+        # costs per exergy unit for outlets streams associated with the product (power and [T, M, CH])
+
+        # physical costs streams for all outlets
+        self.outl[0].C_physical = self.outl[0].C_therm + self.outl[0].C_mech
+        self.outl[1].C_physical = self.outl[1].C_therm + self.outl[1].C_mech
+        self.outl[0].c_physical = self.outl[0].C_physical / self.outl[0].Ex_physical * unit_c
+        self.outl[1].c_physical = self.outl[1].C_physical / self.outl[1].Ex_physical * unit_c
+
+        # average costs for outlets
+        self.outl[0].C_tot = self.outl[0].C_physical + self.outl[0].C_chemical
+        self.outl[1].C_tot = self.outl[1].C_physical + self.outl[1].C_chemical
+        self.outl[0].c_tot = self.outl[0].C_tot / self.outl[0].Ex_tot * unit_c
+        self.outl[1].c_tot = self.outl[1].C_tot / self.outl[1].Ex_tot * unit_c
+
+        # dissapative
+        self.C_dif = (self.inl[0].C_therm - self.outl[0].C_therm) + (self.inl[0].C_mech - self.outl[0].C_mech) +\
+                     (self.inl[1].C_therm - self.outl[1].C_therm) + (self.inl[1].C_mech - self.outl[1].C_mech) + self.Z_costs
+        self.eco_dissipative = True

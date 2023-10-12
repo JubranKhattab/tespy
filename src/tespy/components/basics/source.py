@@ -168,10 +168,10 @@ class Source(Component):
         self.outl[0].C_physical = self.outl[0].C_tot * (self.outl[0].Ex_physical / self.outl[0].Ex_tot)
         self.outl[0].C_chemical = self.outl[0].C_tot * (self.outl[0].Ex_chemical / self.outl[0].Ex_tot)
 
-        self.outl[0].c_therm = self.outl[0].C_therm / self.outl[0].Ex_therm * unit_c
-        self.outl[0].c_mech = self.outl[0].C_mech / self.outl[0].Ex_mech * unit_c
-        self.outl[0].c_physical = self.outl[0].C_physical / self.outl[0].Ex_physical * unit_c
-        self.outl[0].c_chemical = self.outl[0].C_chemical / self.outl[0].Ex_chemical * unit_c
+        self.outl[0].c_therm = 0 if self.outl[0].Ex_therm == 0 else self.outl[0].C_therm / self.outl[0].Ex_therm * unit_c
+        self.outl[0].c_mech = 0 if self.outl[0].Ex_mech == 0 else self.outl[0].C_mech / self.outl[0].Ex_mech * unit_c
+        self.outl[0].c_physical = 0 if self.outl[0].Ex_physical == 0 else self.outl[0].C_physical / self.outl[0].Ex_physical * unit_c
+        self.outl[0].c_chemical = 0 if self.outl[0].Ex_chemical == 0 else self.outl[0].C_chemical / self.outl[0].Ex_chemical * unit_c
 
         self.outl[0].c_tot = self.outl[0].C_tot / self.outl[0].Ex_tot * (10**9 / 3600)
 
