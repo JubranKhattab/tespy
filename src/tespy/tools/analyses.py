@@ -449,6 +449,7 @@ class ExergyAnalysis:
                 for cp in ready_cp:
                     cp.exergy_economic_balance(Exe_Eco, Tamb_SI)  # specific for every component
                     exe_eco_hlp.assign_eco_values_conn_to_comp(cp)  # is now general function, delete from components
+                    exe_eco_hlp.nan_to_zero(cp)  # if nan because of 0 / 0, then 0
                     if hasattr(cp, 'eco_bus_value'):
                         cp.assign_eco_values_bus()  # specific for every component
             exe_eco_hlp.conn_print_exe_eco(self)

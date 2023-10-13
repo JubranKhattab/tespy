@@ -1,6 +1,7 @@
 import numpy as np
 from tespy.tools import logger
 from tespy.tools.helpers import TESPyConnectionError
+import math
 
 
 def init_cost_per_exergy_unit(conn, Exe_Eco):
@@ -298,6 +299,14 @@ def comp_print_exe_eco(self):
     for comp in self.nw.comps['object']:
         comp_exergy_eco_data = [getattr(comp, var) for var in var_list]
         self.component_data.loc[comp.label, var_list] = comp_exergy_eco_data
+def nan_to_zero(self):
+    # when the mechanical or chemical exergy is zero.
+    c_list = ["c_therm", "c_mech", "c_physical", "c_chemical"]
+    for conn in self.outl:
+        for c in c_list:
+            if hasattr(conn, c):
+                attr_value = getattr(conn, c)
+                if math.isnan(attr_value):
+                    setattr(conn, c, 0)
 
-
-#  todo: convert unit with function, check if C_P = Z + C_F for every component
+#  todos: exergy economic balance of the overall system
