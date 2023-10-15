@@ -312,3 +312,127 @@ class Splitter(NodeBase):
                 inconn.fluid.val[fluid] = x
 
         inconn.source.propagate_fluid_to_source(inconn, start)
+
+    def exergy_balance(self, T0):
+        r"""
+        Calculate exergy balance of a Splitter.
+
+        Parameters
+        ----------
+        T0 : float
+            Ambient temperature T0 / K.
+
+        Note
+        ----
+        no exergy is being produced or destroyed.
+
+        .. math::
+
+        """
+        self.E_P = sum(conn.Ex_physical for conn in self.outl)
+        self.E_F = self.inl[0].Ex_physical
+
+        self.E_bus = {
+            "chemical": np.nan, "physical": np.nan, "massless": np.nan
+        }
+        self.E_D = self.E_F - self.E_P
+        self.epsilon = self.E_P / self.E_F
+
+    def exergy_economic_balance(self, Exe_Eco, T0):
+        r"""
+        declare and prepare component's variables c, E, C and Z and calculate exergy economics balance of a component.
+
+        c: cost per exergy unit to every connection.
+        E: Sum of exergy streams to each inlet and outlet connection.
+        C: Cost stream to every connection.
+        Z: Sum of leveled capital investment costs 'CI' and operating and maintenance costs 'OM'.
+
+        For inlets:
+            c is known from previous components for thermal, mechanical, physical and chemical
+            Z is given as input.
+            E is calculated previously in connection functions for thermal, mechanical, physical and chemical
+            C is calculated by Exergy-Costing principle for thermal, mechanical, physical and chemical
+
+        For outlets:
+            E is calculated previously in connection functions for thermal, mechanical, physical and chemical
+            C is calculated by Exergy-Costing principle for thermal, mechanical, physical and chemical
+            c is calculated by Exergy-Costing principle for thermal, mechanical, physical and chemical
+
+        Units
+            c [ / GJ]
+            Z [ / h]
+            E [ W ]
+            C [ / h]
+
+        Parameters
+        ----------
+        Exe_Eco: dict
+            Contains c for all sources as well as all Z for every component or component group in the network.
+
+        Note
+        ----
+        Requirement: all necessary input variables are known and calculated previously.
+            input variables: Z, E, c and C for all inlets for thermal, mechanical, physical and chemical.
+
+        The values of the connections (c, C) depend on the purpose for which the component under consideration is used and the ambient conditions.
+        For each connection at the output, the costs per unit of exergy as well as the cost streams are calculated. This applies to the components (thermal, mechanical, physical and chemical).
+        The total cost stream and the associated costs per exergy unit are then determined.
+        The F and P principles are required for this.
+        The cases are taken from the exergy balance function.
+
+        """
+        # assign Z to be an attribute for the component
+        Z_id = f"{self.label}_Z"
+        self.Z_costs = Exe_Eco[f"{Z_id}"]
+
+        # sum exergy streams of outlets
+        for c in self.outl:
+            c.Ex_tot = c.Ex_physical + c.Ex_chemical
+
+        "++cases++"
+        self.case_one()
+
+        self.C_D = self.c_F * self.E_D * (3600 / 10 ** 9)
+        self.r = 100 * (self.c_P - self.c_F) / self.c_F
+        self.f = 100 * self.Z_costs / (self.Z_costs + self.C_D)
+
+        # conn calculated
+        for c in self.outl:
+            c.eco_check = True
+
+    def case_one(self):
+        # convert units
+        unit_C = (3600 / 10 ** 9)
+        unit_c = (10 ** 9 / 3600)
+
+        # unaffected exergy
+        for c in self.outl:
+            c.c_chemical = self.inl[0].c_chemical
+            c.C_chemical = c.c_chemical * c.Ex_chemical * unit_C
+            c.c_therm = self.inl[0].c_therm
+            c.C_therm = c.c_therm * c.Ex_therm * unit_C
+            c.c_mech = self.inl[0].c_mech
+            c.C_mech = c.c_mech * c.Ex_mech * unit_C
+            c.c_physical = self.inl[0].c_physical
+            c.C_physical = c.c_physical * c.Ex_physical * unit_C
+
+        # F principle
+
+        # [outlets] costs streams associated with the fuel (power and [T, M, CH])
+
+        # fuel costs
+        self.C_F = self.inl[0].C_physical
+        self.c_F = self.C_F / self.E_F * unit_c
+
+        # product costs
+        self.C_P = self.C_F + self.Z_costs
+        self.c_P = self.C_P / self.E_P * unit_c
+
+        # [outlets] costs streams associated with the product with P principle (power and [T, M, CH])
+
+        # costs per exergy unit for outlets streams associated with the product (power and [T, M, CH])
+
+        # average costs for outlets
+        for c in self.outl:
+            c.C_tot = c.C_physical + c.C_chemical
+            c.c_tot = c.C_tot / c.Ex_tot * unit_c
