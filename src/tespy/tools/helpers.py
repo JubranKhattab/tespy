@@ -646,8 +646,35 @@ def molar_mass_flow(flow):
         if x > err:
             mm += x / molar_masses[fluid]
     return mm
-
 # %%
+
+def mass_flow(flow):
+    r"""
+    Calculate mass flow from mol flow.
+
+    Parameters
+    ----------
+    flow : list
+        Fluid property vector containing mass fraction
+        fluid composition.
+
+    Returns
+    -------
+    m_m : dict
+          mass fraction fluid composition m_m / ( ).
+
+        .. math::
+
+            \dot{m}_\mathrm{m} = \frac{x_{i} \cdot M_{i}}{M_{sum}}
+    """
+    molmass = 0
+    mass_fractions = {}
+    for fluid, n in flow.items():
+        if n > err:
+            molmass += n * molar_masses[fluid]
+    for fluid, n in flow.items():
+        mass_fractions[fluid] = n * molar_masses[fluid] / molmass
+    return mass_fractions
 
 
 def num_fluids(fluids):

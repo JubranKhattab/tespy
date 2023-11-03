@@ -44,15 +44,16 @@ so_to_comp.set_attr(
 comp.set_attr(eta_s=0.85, pr=15)
 
 # chamber
-fuel_to_chamber.set_attr(
-    p=Ref(comp_to_chamber, 1.01, 0), T=20,
-    fluid={
+fuelgas = {
         "CO2": 0.04, "Ar": 0, "N2": 0, "O2": 0,
         "H2O": 0, "CH4": 0.96, "H2": 0
     }
+fuel_to_chamber.set_attr(
+    p=Ref(comp_to_chamber, 1.01, 0), T=20,
+    fluid=fuelgas
 )
 # fuel_to_chamber.set_attr(p=Ref(comp_to_chamber, 1.00, 0))
-chamber.set_attr(pr=0.99, eta=1.0, ti=10e6)
+chamber.set_attr(pr=0.99, eta=0.99, ti=10e6)
 chamber_to_turbine.set_attr(T=1200)
 
 
