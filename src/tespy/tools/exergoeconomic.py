@@ -246,14 +246,14 @@ def define_bus_cost(self, Exe_Eco):
         cp_list_names = [type(obj).__name__ for obj in cp_list]
         if any(c in cp_list_names for c in bus_only_for):
             bus_costs = Bus_cost(b, Exe_Eco)
-        for c in bus_costs.inl + bus_costs.outl:
-            c.bus_costs = bus_costs
-        for c in bus_costs.c_cost_out:
-            if c not in Exe_Eco:
-                msg = ('Error assigning internal power costs to some components. No values found for ' +
-                       c + ' in the library Exe_Eco. The key in the dictionary Exe_Eco must match with the wanted component label with \'_c\' a suffix')
-                logger.error(msg)
-                raise TESPyConnectionError(msg)
+            for c in bus_costs.inl + bus_costs.outl:
+                c.bus_costs = bus_costs
+            for c in bus_costs.c_cost_out:
+                if c not in Exe_Eco:
+                    msg = ('Error assigning internal power costs to some components. No values found for ' +
+                           c + ' in the library Exe_Eco. The key in the dictionary Exe_Eco must match with the wanted component label with \'_c\' a suffix')
+                    logger.error(msg)
+                    raise TESPyConnectionError(msg)
 
 
 

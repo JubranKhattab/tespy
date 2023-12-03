@@ -434,7 +434,7 @@ class ExergyAnalysis:
             # check entered dict for inputs costs
             Exe_Eco = exe_eco_hlp.check_input_dict(self, Exe_Eco)
             # prepare busses
-            # exe_eco_hlp.define_bus_cost(self, Exe_Eco)  #  not implemented for all cases yet. Not in use, currently not necessary
+            exe_eco_hlp.define_bus_cost(self, Exe_Eco)  #  not implemented for all cases yet. Not in use, currently not necessary
 
             # so_list, cp_df = self.create_components_df()
             so_list, cp_df = exe_eco_hlp.create_components_df(self)
@@ -443,6 +443,7 @@ class ExergyAnalysis:
                 exe_eco_hlp.assign_eco_values_conn_to_comp(so)  # is now general function, delete from components
             # exergy economic balance of components
             checked_conn = []
+            cp_df_copy = cp_df.copy()
             while not cp_df.empty:
                 # cp_df, ready_cp = self.find_next_component(cp_df)
                 cp_df, ready_cp = exe_eco_hlp.find_next_component(cp_df, checked_conn)

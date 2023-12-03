@@ -57,7 +57,7 @@ def easy_process():
     conn_pump_stm_gen.set_attr(x=0)
     stm_gen.set_attr(pr=1)
 
-    ean =1
+    #ean =1
     rankine_nw, ean = exergy_ana(rankine_nw, turb, cond, pump, stm_gen, so, si)
     return rankine_nw, ean
 
