@@ -32,7 +32,7 @@ nw.add_conns(hot_in_mixer)
 # mixer
 
 # cold in
-cold_in_mixer.set_attr(T=60, p=2, fluid={'Water': 1}, m=5)
+cold_in_mixer.set_attr(T=60, p=1, fluid={'Water': 1}, m=5)
 
 # hot in
 hot_in_mixer.set_attr(T=200, fluid={'Water': 1}, m=6)
@@ -85,7 +85,7 @@ nw.add_busses(cold_in, hot_in, out_mix_B)
 ean = ExergyAnalysis(nw, E_F=[cold_in, hot_in], E_P=[out_mix_B], E_L=[])
 
 # input costs
-exe_eco_input = {'Mixer_Z': 0, 'cold_stream_c': 10, 'hot_stream_c': 20, 'hot_stream_2_c': 10}
+exe_eco_input = {'Mixer_Z': 0, 'cold_stream_c': 10, 'hot_stream_c': 20}
 
 # do analysis
 #ean.analyse(pamb=p_amp, Tamb=T_amb, Chem_Ex= ch_ex_d.stand_ch_exe_dict('Ahrendts'), Exe_Eco=exe_eco_input)

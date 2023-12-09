@@ -467,13 +467,13 @@ class Merge(NodeBase):
                 if i.T.val_SI < self.outl[0].T.val_SI:
                     if i.T.val_SI >= T0:
                         self.E_P += i.m.val_SI * (
-                            self.outl[0].ex_physical - i.ex_physical)
+                            self.outl[0].ex_therm - i.ex_therm)
                     else:
-                        self.E_P += i.m.val_SI * self.outl[0].ex_physical
-                        self.E_F += i.Ex_physical
+                        self.E_P += i.m.val_SI * self.outl[0].ex_therm
+                        self.E_F += i.Ex_therm
                 else:
                     self.E_F += i.m.val_SI * (
-                        i.ex_physical - self.outl[0].ex_physical)
+                        i.ex_therm - self.outl[0].ex_therm)
         elif self.outl[0].T.val_SI == T0:
             self.E_P = np.nan
             for i in self.inl:
@@ -578,9 +578,11 @@ class Merge(NodeBase):
         if self.outl[0].T.val_SI > T0:
             self.case_one(T0)
 
+        # not to the end implemented
         elif self.outl[0].T.val_SI == T0:
             self.case_two()
 
+        # not to the end implemented
         elif self.outl[0].T.val_SI <= T0:
             self.case_three(T0)
 
@@ -619,14 +621,20 @@ class Merge(NodeBase):
         self.C_P = self.C_F + self.Z_costs
         self.c_P = self.C_P / self.E_P * unit_c
 
-        # [outlets] costs streams associated with the product with P principle (power and [T, M, CH])
-        # self.outl[0].C_therm = self.c_P * self.outl[0].Ex_therm * unit_C
-        self.inl_cold[0].c_therm_help = self.c_P + (self.inl_hot[0].m.val_SI/self.inl_cold[0].m.val_SI) * (self.c_P - self.inl_hot[0].c_therm)
-        #self.outl[0].C_therm = (self.inl_cold[0].c_therm_help * self.inl_cold[0].Ex_therm * unit_C) + (self.inl_hot[0].c_therm * self.inl_hot[0].Ex_therm) * unit_C
-        self.outl[0].C_therm_help = self.inl_cold[0].m.val_SI * (self.inl_cold[0].c_therm_help * self.outl[0].ex_therm * unit_C)
-        self.outl[0].C_therm = self.inl_cold[0].m.val_SI * (self.inl_cold[0].c_therm_help * self.outl[0].ex_therm * unit_C) - self.inl_cold[0].m.val_SI * (self.inl_cold[0].c_therm * self.inl_cold[0].ex_therm * unit_C)
+        ## new
+        self.outl[0].C_therm_star_hot = self.inl_hot[0].m.val_SI * self.inl_hot[0].c_therm * self.outl[0].ex_therm * unit_C
+        self.outl[0].C_therm_star_hot_test = self.inl_hot[0].C_therm - self.C_F
 
-        # costs per exergy unit for outlets streams associated with the product (power and [T, M, CH])
+        self.outl[0].C_therm_star_cold = self.inl_cold[0].C_therm + self.inl_hot[0].C_therm - self.outl[0].C_therm_star_hot + self.Z_costs
+        self.outl[0].C_therm_star_cold_test = self.inl_cold[0].C_therm + self.C_P
+
+        self.outl[0].c_therm_star_cold = self.outl[0].C_therm_star_cold / (self.inl_cold[0].C_therm * self.outl[0].ex_therm) * unit_c
+
+        self.outl[0].c_therm_eq = (self.inl_cold[0].m.val_SI * self.outl[0].c_therm_star_cold + self.inl_hot[0].m.val_SI * self.inl_hot[0].c_therm )/ (self.inl_cold[0].m.val_SI + self.inl_hot[0].m.val_SI)
+        self.outl[0].C_therm_eq = self.outl[0].c_therm_eq * self.outl[0].Ex_therm * unit_C
+
+        self.outl[0].C_therm_test = self.outl[0].C_therm_star_cold_test + self.outl[0].C_therm_star_hot_test   #muss nicht unbedingt sein
+        self.outl[0].C_therm = self.inl_hot[0].C_tot + self.inl_cold[0].C_tot + self.Z_costs - self.outl[0].C_chemical - self.outl[0].C_mech # balance
         self.outl[0].c_therm = self.outl[0].C_therm / self.outl[0].Ex_therm * unit_c
 
         # physical costs streams for all outlets
@@ -640,24 +648,13 @@ class Merge(NodeBase):
         # check
         check_in = self.inl[0].C_physical + self.inl[1].C_physical + self.inl[0].C_chemical + self.inl[0].C_chemical + self.Z_costs
         check_out = self.outl[0].C_chemical + self.outl[0].C_physical
-        self.outl[0].C_physical_soll = self.inl[0].c_physical * self.inl[0].c_physical
-        print('e')
-
-        # # ----
-        # for i in self.inl:
-        #     # if cold stream:
-        #     if i.T.val_SI < self.outl[0].T.val_SI:
-        #         # cold over T0, out over T0
-        #         if i.T.val_SI >= T0:
-        #             self.E_P += i.m.val_SI * (
-        #                 self.outl[0].ex_physical - i.ex_physical)
-        #         # cold under T0, out over Tv
-        #         else:
-        #             self.E_P += i.m.val_SI * self.outl[0].ex_physical
-        #             self.E_F += i.Ex_physical
-        #     # if hot stream
-        #     elif i.T.val_SI >= self.outl[0].T.val_SI:
-        #         ...
+        d = check_in - check_out
+        d2 =  self.C_P -  self.C_F - self.Z_costs
+        # therm
+        C_3_2 = self.inl_hot[0].C_therm - self.C_F
+        C_3_1 = self.C_P + self.inl_cold[0].C_therm
+        C_3 = self.outl[0].C_therm
+        d3 = C_3 - C_3_1 - C_3_2
 
     def case_two(self):
         """
