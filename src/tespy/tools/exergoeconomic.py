@@ -2,6 +2,8 @@ import numpy as np
 from tespy.tools import logger
 from tespy.tools.helpers import TESPyConnectionError
 import math
+from scipy.optimize import minimize
+from tabulate import tabulate
 
 
 def init_cost_per_exergy_unit(conn, Exe_Eco):
@@ -299,6 +301,8 @@ def comp_print_exe_eco(self):
     for comp in self.nw.comps['object']:
         comp_exergy_eco_data = [getattr(comp, var) for var in var_list]
         self.component_data.loc[comp.label, var_list] = comp_exergy_eco_data
+
+
 def nan_to_zero(self):
     # when the mechanical or chemical exergy is zero.
     c_list = ["c_therm", "c_mech", "c_physical", "c_chemical"]
@@ -310,3 +314,127 @@ def nan_to_zero(self):
                     setattr(conn, c, 0)
 
 #  todos: exergy economic balance of the overall system
+
+
+def loop_and_calc_eco(Exe_Eco, cp_df, checked_conn, Tamb_SI):
+    while not cp_df.empty:
+        # cp_df, ready_cp = self.find_next_component(cp_df)
+        cp_df, ready_cp = find_next_component(cp_df, checked_conn)
+        for cp in ready_cp:
+            cp.exergy_economic_balance(Exe_Eco, Tamb_SI)  # specific for every component
+            assign_eco_values_conn_to_comp(cp)  # is now general function, delete from components
+            nan_to_zero(cp)  # if nan because of 0 / 0, then 0
+            if hasattr(cp, 'eco_bus_value'):
+                cp.assign_eco_values_bus()  # specific for every component
+
+
+def source_cycle_closer(cc_so, vars_list):
+    unit_C = (3600 / 10 ** 9)
+    unit_c = (10 ** 9 / 3600)
+
+    # check that the values of c in the list are int or float
+    converted_list = [element if isinstance(element, (int, float)) else element[0] for element in vars_list]
+
+    # read the new suggested c for therm, mech, chemical in this order
+    c_T, c_M, c_CH = converted_list
+
+    # write the new suggested c to the source component (as start of the cycle close)
+    cc_so.outl[0].c_therm = c_T
+    cc_so.outl[0].C_therm = cc_so.outl[0].c_therm * cc_so.outl[0].Ex_therm * unit_C
+    cc_so.outl[0].c_mech = c_M
+    cc_so.outl[0].C_mech = cc_so.outl[0].c_mech * cc_so.outl[0].Ex_mech * unit_C
+    cc_so.outl[0].c_chemical = c_CH
+    cc_so.outl[0].C_chemical = cc_so.outl[0].c_chemical * cc_so.outl[0].Ex_chemical * unit_C
+    cc_so.outl[0].C_physical = cc_so.outl[0].C_therm + cc_so.outl[0].C_mech
+    cc_so.outl[0].c_physical = cc_so.outl[0].C_physical / cc_so.outl[0].Ex_physical * unit_c
+    cc_so.outl[0].C_tot = cc_so.outl[0].C_physical + cc_so.outl[0].C_chemical
+    cc_so.outl[0].c_tot = cc_so.outl[0].C_tot / cc_so.outl[0].Ex_tot * unit_c
+
+
+def loop_and_calc_eco_re(vars_list, Exe_Eco, cp_df, Tamb_SI):
+    # select source as cycle closer start
+    cc_so = Exe_Eco['iterate']['cycle_closer_start']
+    source_cycle_closer(cc_so, vars_list)
+
+    # do the exergy economic analysis again
+    checked_conn = []
+    loop_and_calc_eco(Exe_Eco, cp_df, checked_conn, Tamb_SI)
+
+    # select sink as cycle closer end
+    cc_si = Exe_Eco['iterate']['cycle_closer_end']
+
+    dict_values = {'c_therm_so': cc_so.outl[0].c_therm,
+                   'c_mech_so': cc_so.outl[0].c_mech,
+                   'c_chemical_so': cc_so.outl[0].c_chemical,
+                   'c_therm_si': cc_si.inl[0].c_therm,
+                   'c_mech_si': cc_si.inl[0].c_mech,
+                   'c_chemical_si': cc_si.inl[0].c_chemical}
+    return dict_values
+
+
+def del_eco_checks(cp_df_org):
+    cp_list = cp_df_org['object'].tolist()
+    for cp in cp_list:
+        for out_conn in cp.outl:
+            if hasattr(out_conn, 'eco_check'):
+                del out_conn.eco_check
+    cp_df = cp_df_org.copy()
+    return cp_df
+
+
+def prepare_eco_loop(vars_list, Exe_Eco, Tamb_SI, cp_df_org):
+    # delete the "eco_check = True" from the connections
+    cp_df = del_eco_checks(cp_df_org)
+
+    # do the calculations again
+    dict_values = loop_and_calc_eco_re(vars_list,Exe_Eco, cp_df, Tamb_SI)
+    return dict_values
+
+
+def objective_function(vars_list, Exe_Eco, Tamb_SI, cp_df_org):
+    dict_values = prepare_eco_loop(vars_list, Exe_Eco, Tamb_SI, cp_df_org)
+    var_T_so = dict_values['c_therm_so']
+    var_M_so = dict_values['c_mech_so']
+    var_CH_so = dict_values['c_chemical_so']
+    var_T_si = dict_values['c_therm_si']
+    var_M_si = dict_values['c_mech_si']
+    var_CH_si = dict_values['c_chemical_si']
+
+    objective = (var_T_so - var_T_si) ** 2 + (var_M_so - var_M_si) ** 2 + (var_CH_so - var_CH_si) ** 2
+    return objective
+
+
+def print_result(initial_dict, in_c, Exe_Eco):
+    init_therm, init_mech, init_chemical = initial_dict['c_therm'], initial_dict['c_mech'], initial_dict['c_chemical']
+    opt_therm, opt_mech, opt_chemical = in_c
+
+    si_cc = Exe_Eco['iterate']['cycle_closer_end']
+    si_therm = si_cc.inl[0].c_therm
+    si_mech = si_cc.inl[0].c_mech
+    si_chemical = si_cc.inl[0].c_chemical
+
+    obj_T = (opt_therm - si_therm) ** 2
+    obj_M = (opt_mech - si_mech) ** 2
+    obj_CH = (opt_chemical - si_chemical) ** 2
+
+
+    table_data = [
+        ['', 'c_T', 'c_M', 'c_CH'],
+        ['init for source', init_therm, init_mech, init_chemical],
+        ['optimized for source', si_therm, si_mech, si_chemical],
+        ['sink', si_therm, si_mech, si_chemical],
+        ['squared difference', obj_T, obj_M, obj_CH],
+    ]
+
+    print("##### RESULTS: Optimization of the values of the cost per exergy unit for the cycle closer source   #####")
+    print(tabulate(table_data, headers='firstrow', tablefmt='github'))
+
+
+def optimize_diff(Exe_Eco, Tamb_SI, cp_df_org):
+    initial_dict = Exe_Eco['iterate']['initial_c']
+    initial_guess_list = [initial_dict[key] for key in ['c_therm', 'c_mech', 'c_chemical']]
+    # therm, mech, chemical
+    result = minimize(objective_function, initial_guess_list, args=(Exe_Eco, Tamb_SI, cp_df_org), tol=1e-12)
+
+    Exe_Eco['iterate']['repeat'] = False
+    print_result(initial_dict, result.x, Exe_Eco)

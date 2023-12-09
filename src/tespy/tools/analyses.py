@@ -443,32 +443,14 @@ class ExergyAnalysis:
                 exe_eco_hlp.assign_eco_values_conn_to_comp(so)  # is now general function, delete from components
             # exergy economic balance of components
             checked_conn = []
-            cp_df_copy = cp_df.copy()
+            cp_df_org = cp_df.copy()
 
             if 'iterate' in Exe_Eco and 'repeat' in Exe_Eco['iterate'] and Exe_Eco['iterate']['repeat'] == True:
-                #while diff > tolerance:
-                    cp_df = cp_df_copy.copy()
-                    # delete attributes
-                    while not cp_df.empty:
-                        # cp_df, ready_cp = self.find_next_component(cp_df)
-                        cp_df, ready_cp = exe_eco_hlp.find_next_component(cp_df, checked_conn)
-                        for cp in ready_cp:
-                            cp.exergy_economic_balance(Exe_Eco, Tamb_SI)  # specific for every component
-                            exe_eco_hlp.assign_eco_values_conn_to_comp(cp)  # is now general function, delete from components
-                            exe_eco_hlp.nan_to_zero(cp)  # if nan because of 0 / 0, then 0
-                            if hasattr(cp, 'eco_bus_value'):
-                                cp.assign_eco_values_bus()  # specific for every component
-                    # check delta, if < 0.001 then ['repeat'] == False, else then delete all out with eco_check (not only one exit of a comp, all of them) and source_c new variable
+                # for source - sink as cycle closer
+                while Exe_Eco['iterate']['repeat'] == True:
+                    exe_eco_hlp.optimize_diff(Exe_Eco, Tamb_SI, cp_df_org)
             else:
-                while not cp_df.empty:
-                    # cp_df, ready_cp = self.find_next_component(cp_df)
-                    cp_df, ready_cp = exe_eco_hlp.find_next_component(cp_df, checked_conn)
-                    for cp in ready_cp:
-                        cp.exergy_economic_balance(Exe_Eco, Tamb_SI)  # specific for every component
-                        exe_eco_hlp.assign_eco_values_conn_to_comp(cp)  # is now general function, delete from components
-                        exe_eco_hlp.nan_to_zero(cp)  # if nan because of 0 / 0, then 0
-                        if hasattr(cp, 'eco_bus_value'):
-                            cp.assign_eco_values_bus()  # specific for every component
+                exe_eco_hlp.loop_and_calc_eco(Exe_Eco, cp_df, checked_conn, Tamb_SI)
             exe_eco_hlp.conn_print_exe_eco(self)
         """++++++++"""
 

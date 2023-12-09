@@ -113,8 +113,10 @@ rankine_nw.print_results()
 
 # exergy economic
 
-exe_eco_input = {'source_c': 50,'source hot_c': 10 , 'source cycle closer_c': 10, 'turbine_Z': 50, 'condenser_Z': 40, 'pump_Z': 10, 'steam generator_Z': 50, 'pump_c': 50,
-                 'iterate': {'repeat':True, 'cycle_closer_a': cc_so, 'cycle_closer_b': cc_si }}
+exe_eco_input = {'source_c': 50,'source hot_c': 10 , 'source cycle closer_c': 43.875095036596754, 'turbine_Z': 50, 'condenser_Z': 40, 'pump_Z': 10, 'steam generator_Z': 50, 'pump_c': 50,
+                 'iterate': {'repeat':True, 'cycle_closer_start': cc_so, 'cycle_closer_end': cc_si, 'initial_c':{'c_therm': 5, 'c_mech': 5, 'c_chemical': 5} }}
+
+#exe_eco_input = {'source_c': 50,'source hot_c': 10 , 'source cycle closer_c': 10, 'turbine_Z': 50, 'condenser_Z': 40, 'pump_Z': 10, 'steam generator_Z': 50, 'pump_c': 50}
 # define ena and assign as P, F, L
 ean = ExergyAnalysis(rankine_nw, E_F=[heat_in, power_in], E_P=[power_out], E_L=[cooling])
 ean.analyse(pamb=pamb, Tamb=Tamb, Chem_Ex= ch_ex_d.stand_ch_exe_dict('Ahrendts'), Exe_Eco=exe_eco_input)
