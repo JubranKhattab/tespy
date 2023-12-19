@@ -676,6 +676,14 @@ def mass_flow(flow):
         mass_fractions[fluid] = n * molar_masses[fluid] / molmass
     return mass_fractions
 
+def molar_mass_get(flow):
+    molmass = 0
+    for fluid, n in flow.items():
+        if n > err:
+            M = molar_masses[fluid]
+            molmass += n * molar_masses[fluid]
+
+    return molmass
 
 def num_fluids(fluids):
     r"""
