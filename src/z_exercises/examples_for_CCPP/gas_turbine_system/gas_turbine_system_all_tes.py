@@ -2,7 +2,7 @@ from tespy.networks import Network
 from tespy.components import (Source, Compressor, DiabaticCombustionChamber, Turbine, Sink, Valve, Merge, Splitter)
 from tespy.connections import Connection, Ref, Bus
 from CoolProp.CoolProp import PropsSI as PSI
-from tespy.tools.helpers import mass_flow, molar_mass_get
+from tespy.tools.helpers import mass_flow
 
 # network
 fluid_list = ["Ar", "N2", "O2", "CO2", "CH4", "H2O", "H2", "ethane", "C3H8", "n-Butane", "n-Pentane", "n-Hexane"]
@@ -46,12 +46,26 @@ fuel_to_sc = Connection(c10, 'out1', sc, 'in2', label='10')
 nw.add_conns(so_to_comp,comp_to_split, split_to_sc, sc_to_m_tit, split_to_tv1, tv1_to_m_tit, fuel_to_sc, m_tit_to_exp, exp_to_exit)
 
 #
-# generator = Bus("generator")
-# generator.add_comps(
-#     {"comp": exp, "char": 0.995, "base": "component"},  # 99.5 % mech. ele. efficiency
-#     {"comp": ac, "char": 0.995, "base": "bus"},  # 99.5 % mech. ele. efficiency
-# )
-# nw.add_busses(generator)
+generator = Bus("generator")
+generator.add_comps(
+    {"comp": exp, "char": 0.995*0.995, "base": "component"},  # 99.5 % mech. ele. efficiency
+    {"comp": ac, "char": 0.995*0.995, "base": "bus"},  # 99.5 % mech. ele. efficiency
+)
+
+
+generator_v = Bus("generator compressor")
+generator_v.add_comps(
+    {"comp": ac, "char": 0.995*0.995, "base": "bus"},  # 99.5 % mech. ele. efficiency
+)
+
+generator_t = Bus("generator turbine")
+generator_t.add_comps(
+    {"comp": exp, "char": 0.995*0.995, "base": "component"},)
+
+
+generator_v.set_attr(P=+3.48e8)
+#nw.add_busses(generator)
+nw.add_busses(generator_v, generator_t)
 # total 400 instead of mass flow as input
 
 # parameters
@@ -64,7 +78,7 @@ air_0= {
     }
 
 psatH2O = PSI('P', 'Q', 0, 'T', 5+273.15, 'water') * 0.00001
-rh = 70
+rh = 75
 pH2O = float(rh) / 100 * psatH2O
 
 xH2O = PSI('M', 'water') * (pH2O / 1.013) / (
@@ -74,7 +88,7 @@ air_0 = {key: value * (1-xH2O) for key, value in air_0.items()}
 air_0['H2O'] = xH2O
 air_0 = mass_flow(air_0)
 
-so_to_comp.set_attr(m=841.75,
+so_to_comp.set_attr(#m=841.75,
     p=1.013, T=5,
     fluid=air_0
 )
@@ -86,9 +100,8 @@ fuel_n = {
         "n-Butane": 0.00200, "n-Pentane": 0.00050, "n-Hexane": 0.00069,
         "Ar":0, "H2": 0
     }
-mol_mas = molar_mass_get(fuel_n)
 fuel = mass_flow(fuel_n)
-fuel_to_sc.set_attr(p=19.25,
+fuel_to_sc.set_attr(p=19.247,
                     T=195,
     fluid=fuel
 )
@@ -109,7 +122,8 @@ exp.set_attr(eta_s=0.90)
 exp_to_exit.set_attr(p=1.051)
 
 # splitter
-split_to_tv1.set_attr(m=148.83)
+split_to_tv1.set_attr(m=153.9)
+#m_tit_to_exp.set_attr(T=1340)
 
 
 # valve
