@@ -1,11 +1,11 @@
 from tespy.networks import Network
-from tespy.components import (Source, Pump, Turbine, Sink, Valve, Merge, Splitter, HeatExchanger, Condenser)
+from tespy.components import (Source, Pump, Turbine, Sink, Valve, Merge, Splitter, HeatExchanger, Condenser, Compressor, DiabaticCombustionChamber)
 from tespy.connections import Connection, Bus
-import help_func as h_f
+from CCPP_exergoeconomic_analysis import help_func as h_f
 
 # network
 fluid_list = ["Ar", "N2", "O2", "CO2", "CH4", "H2O", "H2", "ethane", "C3H8", "n-Butane", "n-Pentane", "n-Hexane"]
-nw = Network(fluids=fluid_list, p_unit="bar", T_unit="C")
+nw = Network(fluids=fluid_list, p_unit="bar", T_unit="C", p_range=[0.01, 175], h_range=[1, 50000000])
 
 exhaust_m = h_f.exhaust_m
 air_n = h_f.air_n
@@ -16,9 +16,6 @@ water_m = h_f.water_m
 so_14 = Source('Source 14')
 si_31 = Sink('Sink 31')
 so_35 = Source('Source 35')
-# del si_75 = Sink('Sink 75')
-# del si_66 = Sink('Sink 66')
-si_88 = Sink('Sink 88')
 # high p - hx
 eco1 = HeatExchanger('ECO1')
 eco2 = HeatExchanger('ECO2')
@@ -57,7 +54,6 @@ spl_fw3 = Splitter('Splitter FW3')
 mix_dt3 = Merge('Mix DT3')
 
 # B
-# del si_66, si_75
 dt4 = Turbine('DT4')
 dt5 = Turbine('DT5')
 spl_fw2 = Splitter('Splitter FW2')
@@ -74,11 +70,8 @@ hk2 = HeatExchanger('HK2')
 hk3 = HeatExchanger('HK3')
 so_71 = Source('Source 71')
 si_74 = Sink('Sink 74')
-# del si_70 = Sink('Sink 70')
-# del si_85 = Sink('Sink 85')
 
 # C
-# del si_70, si_85
 mix_kon = Merge('Mix KON')
 kon = Condenser('KON')
 p4 = Pump('P4')
@@ -88,6 +81,22 @@ vw = HeatExchanger('VW')
 so_91 = Source('Source 91')
 si_93 = Sink('Sink 93')
 si_34 = Sink('Sink 34')
+#si_85 = Sink('Sink 85')
+#si_33 = Sink('Sink 33')
+si_87 = Sink('Sink 87')
+si_random_kon = Sink('Sink random kon')
+si_random_fw = Sink('Sink random fw')
+
+# Gas Turbine System
+v = Compressor('V')
+dr_ue1 = Valve('DRue1')
+exp = Turbine('EXP')
+mix_tit = Merge('MIX TIT')
+spl_v = Splitter('Splitter V')
+bk = DiabaticCombustionChamber('BK')
+so_1 = Source('Source 1')
+so_10 = Source('Source 10')
+si_14_g = Sink('Sink 14 - Gas')
 
 # connections
 c35 = Connection(so_35, 'out1', kvw, 'in2', label='35')
@@ -107,8 +116,8 @@ c67 = Connection(spl_fw2, 'out2', dt4, 'in1', label='67')  # b
 c68 = Connection(dt4, 'out1', spl_fw1, 'in1', label='68')  # b
 c83 = Connection(spl_fw1, 'out1', dr_ue6, 'in1', label='83')  # b
 c69 = Connection(spl_fw1, 'out2', dt5, 'in1', label='69')  # b
-c70 = Connection(dt5, 'out1', mix_kon, 'in2', label='70')  # b
-c70m = Connection(mix_kon, 'out1', kon, 'in1', label='70m')  # c
+c70 = Connection(dt5, 'out1', kon, 'in1', label='70')  # b
+#c70m = Connection(mix_kon, 'out1', kon, 'in1', label='70m')  # c
 c32 = Connection(kon, 'out1', p1, 'in1', label='32')  # c
 c33 = Connection(p1, 'out1', vw, 'in2', label='33')  # c
 c34 = Connection(vw, 'out2', si_34, 'in1', label='34')  # c
@@ -123,7 +132,7 @@ c84 = Connection(dr_ue6, 'out1', mix_fw1, 'in2', label='84')  # b
 c84m = Connection(mix_fw1, 'out1', hk1, 'in1', label='84m')  # b
 c85 = Connection(hk1, 'out1', vw, 'in1', label='85')  # b
 c86 = Connection(vw, 'out1', dr_be4, 'in1', label='86')  # c
-c87 = Connection(dr_be4, 'out1', mix_kon, 'in1', label='87')  # c
+c87 = Connection(dr_be4, 'out1', si_87, 'in1', label='87')  # c
 c91 = Connection(so_91, 'out1', p4, 'in1', label='91')  # c
 c92 = Connection(p4, 'out1', kon, 'in2', label='92')  # c
 c93 = Connection(kon, 'out2', si_93, 'in1', label='93')  # c
@@ -132,9 +141,10 @@ c66 = Connection(dt3, 'out1', spl_fw2, 'in1', label='66')
 c39 = Connection(spl_p2, 'out2', p3, 'in1', label='39')
 c38 = Connection(p2, 'out1', spl_p2, 'in1', label='38')
 c50 = Connection(spl_p2, 'out1', eco4, 'in2', label='50')
-c51 = Connection(eco4, 'out2', spl_bvw, 'in1', label='51')
-c88 = Connection(spl_bvw, 'out1', si_88, 'in1', label='88')
-c52 = Connection(spl_bvw, 'out2', vd2, 'in2', label='52')
+# c51 = Connection(eco4, 'out2', spl_bvw, 'in1', label='51')
+# c88 = Connection(spl_bvw, 'out1', si_88, 'in1', label='88')
+# c52 = Connection(spl_bvw, 'out2', vd2, 'in2', label='52')
+c51 = Connection(eco4, 'out2', vd2, 'in2', label='51')
 c53 = Connection(vd2, 'out2', uh5, 'in2', label='53')
 c54 = Connection(uh5, 'out2', mix_zuh, 'in1', label='54')
 c59 = Connection(mix_zuh, 'out1', zuh1, 'in2', label='59')
@@ -176,13 +186,27 @@ c71 = Connection(so_71, 'out1', hk1, 'in2', label='71')  # b
 c72 = Connection(hk1, 'out2', hk2, 'in2', label='72')  # b
 c73 = Connection(hk2, 'out2', hk3, 'in2', label='73')  # b
 c74 = Connection(hk3, 'out2', si_74, 'in1', label='74')  # b
+# gas turbine system
+c1 = Connection(so_1, 'out1', v, 'in1', label='1')
+c2 = Connection(v, 'out1', spl_v, 'in1', label='2')
+c3 = Connection(spl_v, 'out1', bk, 'in1', label='3')
+c7 = Connection(spl_v, 'out2', dr_ue1, 'in1', label='7')
+c8 = Connection(dr_ue1, 'out1', mix_tit, 'in2', label='8')
+c10 = Connection(so_10, 'out1', bk, 'in2', label='10')
+c12 = Connection(bk, 'out1', mix_tit, 'in1', label='12')
+c13 = Connection(mix_tit, 'out1', exp, 'in1', label='13')
+c14_gas = Connection(exp, 'out1', si_14_g, 'in1', label='14 new')
+#c14 = Connection(exp, 'out1', si_14, 'in1', label='14')
 
 # add connections
-nw.add_conns(c35, c36, c55, c56, c57, c58, c37, c38, c39, c50, c51, c88, c52, c53, c54, c59, c60, c61, c62, c49, c63, c75, c64, c65, c66,
+nw.add_conns(c1, c2, c3, c7, c8, c10, c12, c13, c14_gas)
+nw.add_conns(c35, c36, c55, c56, c57, c58, c37, c38, c39, c50, c51, c53, c54, c59, c60, c61, c62, c49, c63, c75, c64, c65, c66,
              c40, c41, c42, c43, c44, c45, c46, c47, c48, c14, c15, c16, c17, c18, c19, c20, c21, c22, c23, c24, c25, c26, c27, c28, c29, c30, c31
 )
 nw.add_conns(c79, c67, c68, c83, c69, c70, c76, c77, c78, c80, c80m, c81, c82, c84, c84m, c85, c71, c72, c73, c74)
-nw.add_conns(c70m, c32, c33, c34, c86, c87, c91, c92, c93)
+nw.add_conns( c32, c33, c34, c86, c87, c91, c92, c93)
+# nw.add_conns(c1, c2, c3, c7, c8, c10, c12, c13)
+
 
 # busses
 # pumps
@@ -207,6 +231,12 @@ g_dt4.add_comps({"comp": dt4, "char": 0.995*0.995, "base": "component"})
 g_dt5.add_comps({"comp": dt5, "char": 0.995*0.995, "base": "component"})
 # together?
 nw.add_busses(g_p2, g_p3, g_dt1, g_dt2, g_dt3, g_dt4, g_dt5, g_p1, g_p4)
+# gas expander and compressor
+g_v = Bus("generator v - 95")
+g_v.add_comps({"comp": v, "char": 0.995*0.995, "base": "bus"})
+g_exp = Bus("generator turbine")
+g_exp.add_comps({"comp": exp, "char": 0.995*0.995, "base": "component"})
+nw.add_busses(g_v, g_exp)
 
 
 # set parameters
@@ -218,7 +248,7 @@ nw.add_busses(g_p2, g_p3, g_dt1, g_dt2, g_dt3, g_dt4, g_dt5, g_p1, g_p4)
 # p for DT3 out
 
 # hx
-c36.set_attr(T=145)
+c36.set_attr(T=145, fluid=water_m)
 # high p
 c41.set_attr(T=220)
 c42.set_attr(T=300)
@@ -243,7 +273,8 @@ c44.set_attr(Td_bp=8)
 vd1.set_attr(ttd_l=15)
 # VD2 - medium p (in 2 VD after splitter with no delta p for the new)
 #c52.set_attr(x=0)
-c52.set_attr(Td_bp=-5)
+#c52.set_attr(Td_bp=-5)
+c51.set_attr(Td_bp=-5)
 #c52.set_attr(Td_bp=-6.708)
 c53.set_attr(Td_bp=8)
 vd2.set_attr(ttd_l=15)
@@ -265,12 +296,11 @@ dt2.set_attr(eta_s=0.9)
 dt3.set_attr(eta_s=0.9)
 p2.set_attr(eta_s=0.9)
 p3.set_attr(eta_s=0.9)
-# splitter
-c88.set_attr(m=2)
-# c75.set_attr(m=15.23) # b
+
+
 # fluids
-c14.set_attr(m=800, p=1.051, T=644.51, fluid=exhaust_m)
-c35.set_attr(p=24.750, T=40.19, fluid=water_m)
+c14.set_attr(m=829.55, p=1.051, T=636.4013, fluid=exhaust_m)
+c35.set_attr(p=24.750, T=51.47401048420096)
 
 # B
 # T71, p71, T72, T73, T74
@@ -315,16 +345,87 @@ p1.set_attr(eta_s=0.9)
 p4.set_attr(eta_s=0.9)
 c91.set_attr(T=8, p=1.013, fluid=water_m)
 c92.set_attr(p=1.5)
-c93.set_attr(T=14, p=1.013)
-c70.set_attr(p=h_f.sat_p(c93.T.val+5))
-
-
+c93.set_attr(T=14)
+kon.set_attr(pr1=1, pr2=0.6)
 c33.set_attr(p=25)
-# vw.set_attr(pr1=0.99, pr2=0.99, ttd_l=10)
-vw.set_attr(pr1=0.99, pr2=0.99)
-c87.set_attr(T=40)
+vw.set_attr(pr1=0.99, pr2=0.99, ttd_l=10)
 
-nw.solve(mode="design")
+
+
+"""
+-----
+mixer for district heat - new structure
+"""
+nw.del_conns(c84,c82, c84m, c80, c78, c80m, c85, c81)
+c84 = Connection(dr_ue6, 'out1', hk1, 'in1', label='84')
+c85m = Connection( hk1, 'out1', mix_fw1, 'in2', label='85m')
+c82 = Connection(dr_be3, 'out1', mix_fw1, 'in1', label='82')
+c80 = Connection(dr_ue5, 'out1', hk2, 'in1', label='80')
+c81m = Connection( hk2, 'out1', mix_fw2, 'in2', label='81m')
+c78 = Connection(dr_be2, 'out1', mix_fw2, 'in1', label='78')
+c81 = Connection(mix_fw2, 'out1', dr_be3, 'in1', label= '81')
+c85 = Connection(mix_fw1, 'out1', vw, 'in1', label='85')
+c80.set_attr(p=h_f.sat_p(c73.T.val+3))
+c84.set_attr(p=h_f.sat_p(c72.T.val+3))
+nw.add_conns(c84, c85m, c82, c80, c81m, c78, c81, c85)
+"""
+-----
+"""
+
+# with merge - before condenser
+nw.del_conns(c70, c87, c86)
+c86 = Connection(vw, 'out1', dr_be4, 'in1', label='86')
+c87 = Connection(dr_be4, 'out1', mix_kon, 'in1', label='87')
+c70 = Connection(dt5, 'out1', mix_kon, 'in2', label='70')
+c70m = Connection(mix_kon, 'out1', kon, 'in1', label='70m')
+c70.set_attr(p=h_f.sat_p(c93.T.val+5))
+c70m.set_attr(fluid0=water_m)
+nw.add_conns(c87, c70, c70m, c86)
+
+# without brennstoffvorwärmung bvw
+# nw.del_conns(c51, c88, c52)
+# c51 = Connection(eco4, 'out2', vd2, 'in2', label='51')
+# c51.set_attr(Td_bp=-5)
+# nw.add_conns(c51)
+
+
+"""
+-----
+gas turbine system
+"""
+air_m = h_f.humid_air(T=5, rh=75, air_n=air_n)
+fuel_m = h_f.calc_mass_flow(fuel_n)
+# V
+v.set_attr(eta_s=0.90, pr=19)
+c1.set_attr(m=803.961, p=1.013, T=5, fluid=air_m)
+# Splitter V
+c7.set_attr(m=138.743)
+# BK
+bk.set_attr(pr=0.95, eta=0.98, lamb=1.9)
+c10.set_attr(p=19.258, T=5, fluid=fuel_m)
+c13.set_attr(fluid0={"O2": 0.001})
+# EXP
+exp.set_attr(eta_s=0.90)
+c14_gas.set_attr(p=1.051)
+
+nw.del_conns(c14, c14_gas)
+c14 = Connection(exp, 'out1', uh4, 'in1', label='14')
+c14.set_attr(p=1.051)
+nw.add_conns(c14)
+
+
+
+# init_only= True for debugging
+nw.check_network()
+nw.check_conns()
+#nw.solve(mode="design")
+nw.solve(mode="design", init_path='C:/TU-Berlin/01_Masterarbeit/tespy_forked/saved_nw')
 nw.print_results()
+"""
+# nw.save_network('C:/TU-Berlin/01_Masterarbeit/tespy_forked/saved_nw/ccpp_export_nw')
+# nw.save_connections('C:/TU-Berlin/01_Masterarbeit/tespy_forked/saved_nw/connections')
+# nw.save_components('C:/TU-Berlin/01_Masterarbeit/tespy_forked/saved_nw/components')
+# nw.save_busses('C:/TU-Berlin/01_Masterarbeit/tespy_forked/saved_nw/busses')
+"""
 
 
