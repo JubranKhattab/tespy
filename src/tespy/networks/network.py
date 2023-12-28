@@ -2717,6 +2717,7 @@ class Network:
 
         # connection properties
         df = self.results['Connection'].loc[:, ['m', 'p', 'h', 'T']]
+        df = df.sort_index()
         for c in df.index:
             if not self.get_conn(c).printout:
                 df.drop([c], axis=0, inplace=True)
@@ -2943,7 +2944,7 @@ class Network:
         # fluid balance
         df['balance'] = df.apply(f, axis=1, args=('fluid', 'balance'))
 
-        df.to_csv(fn, sep=';', decimal='.', index=False, na_rep='nan')
+        df.to_csv(fn+'.csv', sep=';', decimal='.', index=False, na_rep='nan')
         logger.debug('Connection information saved to %s.', fn)
 
     def save_components(self, path):

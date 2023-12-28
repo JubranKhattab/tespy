@@ -434,7 +434,7 @@ class ExergyAnalysis:
             # check entered dict for inputs costs
             Exe_Eco = exe_eco_hlp.check_input_dict(self, Exe_Eco)
             # prepare busses
-            exe_eco_hlp.define_bus_cost(self, Exe_Eco)  #  not implemented for all cases yet. Not in use, currently not necessary
+            exe_eco_hlp.define_bus_cost(self, Exe_Eco)  #  not implemented for all cases yet
 
             # so_list, cp_df = self.create_components_df()
             so_list, cp_df = exe_eco_hlp.create_components_df(self)
@@ -865,6 +865,7 @@ class ExergyAnalysis:
         if connections:
             print('##### RESULTS: Connection specific physical exergy and ' +
                   'chemical exergy #####')
+            self.connection_data = self.connection_data.sort_index()
             print(tabulate(
                 self.connection_data, headers='keys',
                 tablefmt='psql', floatfmt='.3e'))

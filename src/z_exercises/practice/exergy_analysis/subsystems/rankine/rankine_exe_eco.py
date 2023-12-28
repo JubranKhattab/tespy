@@ -16,14 +16,14 @@ rankine_nw.set_attr(T_unit='C', p_unit='bar', h_unit='kJ / kg')
 # components
 turb = Turbine('turbine')
 cond = Condenser('condenser')
-so = Source('source')
+so = Source('source condenser')
 so_hx = Source('source hot')
-si = Sink('sink')
+si = Sink('sink condenser')
 si_hx = Sink('sink hot')
 pump = Pump('pump')
 stm_gen = HeatExchanger('steam generator')
 cc = CycleCloser('cycle closer')
-cc_so = Source('source cycle closer')
+cc_so = Source('source cc')
 cc_si = Sink('sink cycle closer')
 
 
@@ -113,8 +113,8 @@ rankine_nw.print_results()
 
 # exergy economic
 
-exe_eco_input = {'source_c': 50,'source hot_c': 10 , 'source cycle closer_c': 43.875095036596754, 'turbine_Z': 50, 'condenser_Z': 40, 'pump_Z': 10, 'steam generator_Z': 50, 'pump_c': 50,
-                 'iterate': {'repeat':True, 'cycle_closer_start': cc_so, 'cycle_closer_end': cc_si, 'initial_c':{'c_therm': 5, 'c_mech': 5, 'c_chemical': 5} }}
+exe_eco_input = {'source condenser_c': 50,'source hot_c': 10 , 'source cc_c': 43.875095036596754, 'turbine_Z': 50, 'condenser_Z': 40, 'pump_Z': 10, 'steam generator_Z': 50, 'pump_c': 50,
+                 'iterate': {'repeat':False, 'cycle_closer_start': cc_so, 'cycle_closer_end': cc_si, 'initial_c':{'c_therm': 5, 'c_mech': 5, 'c_chemical': 5} }}
 
 #exe_eco_input = {'source_c': 50,'source hot_c': 10 , 'source cycle closer_c': 10, 'turbine_Z': 50, 'condenser_Z': 40, 'pump_Z': 10, 'steam generator_Z': 50, 'pump_c': 50}
 # define ena and assign as P, F, L

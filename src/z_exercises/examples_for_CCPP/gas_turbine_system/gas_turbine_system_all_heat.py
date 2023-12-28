@@ -1,6 +1,6 @@
 from tespy.networks import Network
 from tespy.components import (Source, Compressor, DiabaticCombustionChamber, Turbine, Sink, Valve, Merge, Splitter, HeatExchanger)
-from tespy.connections import Connection, Ref, Bus
+from tespy.connections import Connection, Bus
 from CoolProp.CoolProp import PropsSI as PSI
 from tespy.tools.helpers import mass_flow
 
@@ -86,6 +86,13 @@ air_0= {
         "Ar":0.00934, "H2": 0
     }
 
+air_0= {
+        "CO2": 0.00038, "ethane": 00, "N2": 0.78085,
+        "C3H8": 00, "CH4": 00,  "O2": 0.20942, "H2O":00,
+        "n-Butane": 00, "n-Pentane": 00, "n-Hexane": 00,
+        "Ar":0.00938, "H2": 00
+    }
+
 psatH2O = PSI('P', 'Q', 0, 'T', 5+273.15, 'water') * 0.00001
 rh = 75
 pH2O = float(rh) / 100 * psatH2O
@@ -97,10 +104,12 @@ air_0 = {key: value * (1-xH2O) for key, value in air_0.items()}
 air_0['H2O'] = xH2O
 air_0 = mass_flow(air_0)
 
-so_to_comp.set_attr(m=805.039,
+so_to_comp.set_attr(m=803.961,
     p=1.013, T=5,
     fluid=air_0
 )
+# m= 805.039
+# m= 840.3174
 
 # Fuel
 fuel_n = {
@@ -109,9 +118,18 @@ fuel_n = {
         "n-Butane": 0.00200, "n-Pentane": 0.00050, "n-Hexane": 0.00069,
         "Ar":0, "H2": 0
     }
+
+# from waermeschaltbild
+# fuel_n = {
+#         "CO2": 0.016680, "ethane": 0.036250, "N2": 0.104030,
+#         "C3H8": 0.006040, "CH4": 0.833840,  "O2": 0.000010, "H2O":00,
+#         "n-Butane": 0.00198, "n-Pentane": 0.00052, "n-Hexane": 0.000650,
+#         "Ar":00, "H2": 00
+#     }
+
 fuel = mass_flow(fuel_n)
 fuel_to_sc.set_attr(p=19.247,
-                    T=200,
+                    T=5,
     fluid=fuel
 )
 
@@ -143,7 +161,8 @@ exp.set_attr(eta_s=0.90)
 exp_to_exit.set_attr(p=1.051)
 
 # splitter
-split_to_tv1.set_attr(m=147.143)
+#split_to_tv1.set_attr(m=147.143)
+split_to_tv1.set_attr(m=138.743)
 #m_tit_to_exp.set_attr(T=1340)
 
 
@@ -163,3 +182,7 @@ print("m brennstoff: ",round(fuel_to_sc.m.val,2))
 print("m T13: ",round(m_tit_to_exp.T.val,2))
 print("m P-Netto: ",round(-generator.P.val/100000000,2))
 print("m T12: ",round(sc_to_m_tit.T.val,2))
+print("m 88 soll: ",12.82)
+print("m 88: ",round(c_88.m.val,2))
+print("m ABGAS: ",round(exp_to_exit.m.val,2))
+print("Abgas Zusammensetzung: ",dict(c14.inl[0].fluid.val))

@@ -4,6 +4,7 @@ from tespy.tools.helpers import TESPyConnectionError
 import math
 from scipy.optimize import minimize
 from tabulate import tabulate
+from src.CCPP_exergoeconomic_analysis.help_func import c_steam_gen, c_sp_vw
 
 
 def init_cost_per_exergy_unit(conn, Exe_Eco):
@@ -76,7 +77,7 @@ def check_input_dict(self, Exe_Eco):
         logger.error(msg)
         raise TESPyConnectionError(msg)
 
-    # for busses - not used
+    # # for busses - not used
     values = [value for key, value in Exe_Eco.items() if isinstance(value, str)]
     all_comps_c = {item + "_c" for item in all_comps}
     missing_values = list(set(values) - all_comps_c)
@@ -217,7 +218,7 @@ def find_next_component(cp_df, checked_conn):
 
 def define_bus_cost(self, Exe_Eco):
     """
-    --- **** not used **** ---
+    --- **** not used for all cases **** ---
     declare a class for every added bus that helps to assign the associated costs with the bus. The attributes of this class are:
         inl: list of all components that generate power and feed it in the bus like turbines. These are named here input components
 
@@ -326,6 +327,12 @@ def loop_and_calc_eco(Exe_Eco, cp_df, checked_conn, Tamb_SI):
             nan_to_zero(cp)  # if nan because of 0 / 0, then 0
             if hasattr(cp, 'eco_bus_value'):
                 cp.assign_eco_values_bus()  # specific for every component
+            # temp a
+            if cp.label == 'EXP':
+                c_steam_gen(cp, cp_df)
+            if cp.label == 'HK1':
+                c_sp_vw(ready_cp, cp_df)
+
 
 
 def source_cycle_closer(cc_so, vars_list):

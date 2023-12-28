@@ -158,9 +158,10 @@ split_to_tv1.set_attr(m=132)
 m_tit_to_exp.set_attr(fluid0={"O2": 0.001})
 
 # solve
-#nw.solve(mode="design")
-#nw.print_results()
+nw.solve(mode="design")
+nw.print_results()
 
+"""
 print("m Luft: ",round(so_to_comp.m.val ,2))
 print("m Mischung: ",round(split_to_tv1.m.val, 2))
 print("m brennstoff: ",round(fuel_to_sc.m.val,2))
@@ -220,6 +221,8 @@ fig.suptitle('Konstanter Teilluftstrom (7) = 150 kg/s')
 
 plt.savefig('C:/TU-Berlin/01_Masterarbeit/Bilder_tespy/hauptmassenstrom_T_P.png')
 plt.close()
+
+"""
 
 #
 # # Create a figure and axis

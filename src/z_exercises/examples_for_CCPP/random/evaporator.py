@@ -59,6 +59,7 @@ t_correct = 0.8962
 tsatH2O = PSI('T', 'Q', 0, 'P', psatH2 * 100000 , 'H2O') - 273.15
 #c_eco_eva.set_attr(T=tsatH2O + t_correct , p=psatH2, fluid=water)
 c_eco_eva.set_attr(Td_bp=-5 , p=psatH2, fluid=water)
+#c_eco_eva.set_attr(x=0 , p=psatH2, fluid=water)
 
 
 # Input Q ist so definiert

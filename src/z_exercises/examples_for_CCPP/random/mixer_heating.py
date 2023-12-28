@@ -32,7 +32,7 @@ nw.add_conns(cold_in_2_hx, cold_hx_2_out)
 # hx
 hx.set_attr(pr1=0.99, pr2=0.97)
 # hot
-hot_hx_2_out.set_attr(T=67.90, p=0.697, fluid={'Water': 1}, m=76.94)
+hot_hx_2_out.set_attr(x=1, p=0.697, fluid={'Water': 1}, m=76.94)
 # cold
 cold_in_2_hx.set_attr(T=65.00, p=14.5, fluid={'Water': 1}, m=864.32)
 cold_hx_2_out.set_attr(T=87.09)

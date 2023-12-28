@@ -573,8 +573,8 @@ class Merge(NodeBase):
         # for sum
         self.C_P = 0
         self.C_F = 0
-        self.inl_hot = [c for c in self.inl if c.T.val >= self.outl[0].T.val]
-        self.inl_cold = [c for c in self.inl if c.T.val < self.outl[0].T.val]
+        self.inl_hot = [c for c in self.inl if c.h.val >= self.outl[0].h.val]
+        self.inl_cold = [c for c in self.inl if c.h.val < self.outl[0].h.val] # empty
         if self.outl[0].T.val_SI > T0:
             self.case_one(T0)
 
@@ -619,7 +619,7 @@ class Merge(NodeBase):
 
         # product costs
         self.C_P = self.C_F + self.Z_costs
-        self.c_P = self.C_P / self.E_P * unit_c
+        self.c_P = self.C_P / self.E_P * unit_c # c_P inf
 
         ## new
         self.outl[0].C_therm_star_hot = self.inl_hot[0].m.val_SI * self.inl_hot[0].c_therm * self.outl[0].ex_therm * unit_C
