@@ -329,8 +329,10 @@ class Splitter(NodeBase):
         .. math::
 
         """
-        self.E_P = sum(conn.Ex_physical for conn in self.outl)
-        self.E_F = self.inl[0].Ex_physical
+        # self.E_P = sum(conn.Ex_physical for conn in self.outl)
+        self.E_P = sum(conn.Ex_physical + conn.Ex_chemical for conn in self.outl)
+        # self.E_F = self.inl[0].Ex_physical
+        self.E_F = self.inl[0].Ex_physical + self.inl[0].Ex_chemical
 
         self.E_bus = {
             "chemical": np.nan, "physical": np.nan, "massless": np.nan
@@ -407,21 +409,24 @@ class Splitter(NodeBase):
 
         # unaffected exergy
         for c in self.outl:
+            t_frac = c.Ex_therm / c.Ex_tot
+            m_frac = c.Ex_mech / c.Ex_tot
+            ch_frac = c.Ex_chemical / c.Ex_tot
             c.c_chemical = self.inl[0].c_chemical
-            c.C_chemical = c.c_chemical * c.Ex_chemical * unit_C
+            c.C_chemical = c.c_chemical * c.Ex_chemical * unit_C + self.Z_costs * (c.m.val/self.inl[0].m.val) * ch_frac
             c.c_therm = self.inl[0].c_therm
-            c.C_therm = c.c_therm * c.Ex_therm * unit_C
+            c.C_therm = c.c_therm * c.Ex_therm * unit_C + self.Z_costs * (c.m.val/self.inl[0].m.val) * t_frac
             c.c_mech = self.inl[0].c_mech
-            c.C_mech = c.c_mech * c.Ex_mech * unit_C
+            c.C_mech = c.c_mech * c.Ex_mech * unit_C + self.Z_costs * (c.m.val/self.inl[0].m.val) * m_frac
             c.c_physical = self.inl[0].c_physical
-            c.C_physical = c.c_physical * c.Ex_physical * unit_C
+            c.C_physical = c.c_physical * c.Ex_physical * unit_C + self.Z_costs * (c.m.val/self.inl[0].m.val) * (m_frac+t_frac)
 
         # F principle
 
         # [outlets] costs streams associated with the fuel (power and [T, M, CH])
 
         # fuel costs
-        self.C_F = self.inl[0].C_physical
+        self.C_F = self.inl[0].C_physical + self.inl[0].C_chemical
         self.c_F = self.C_F / self.E_F * unit_c
 
         # product costs

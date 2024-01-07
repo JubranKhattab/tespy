@@ -26,7 +26,7 @@ nw.add_conns(so_to_cham, fuel_to_chamber, chamber_to_exhaust)
 
 # parameters
 # air source
-so_to_cham.set_attr(
+so_to_cham.set_attr(m=500,
     p=1.0, T=20,
     fluid={
         "Ar": 0.0129, "N2": 0.7553, "H2O": 0,
@@ -44,8 +44,8 @@ fuel_to_chamber.set_attr(
     }
 )
 # fuel_to_chamber.set_attr(p=Ref(comp_to_chamber, 1.00, 0))
-chamber.set_attr(pr=1, eta=0.99, ti=10e6)
-chamber_to_exhaust.set_attr(T=1200)
+chamber.set_attr(pr=1, eta=0.70,  lamb=1)
+# chamber_to_exhaust.set_attr(T=1200)
 
 # exergy analysis
 # define busses
@@ -86,8 +86,8 @@ z_cost_streams['Combustion Chamber_Z'] = 120
 sources_labels = nw.comps[nw.comps['comp_type'] == 'Source'].index.tolist()
 c_cost_source = {key: None for key in sources_labels}
 c_cost_source = {key + '_c': value for key, value in c_cost_source.items()}
-c_cost_source['Air Inlet_c'] = 20
-c_cost_source['Fuel_c'] = 3000
+c_cost_source['Air Inlet_c'] = 10
+c_cost_source['Fuel_c'] = 20
 
 exe_eco_input = {**z_cost_streams, **c_cost_source}
 # source has no z --> only one dict is necessary
@@ -96,6 +96,8 @@ ean.analyse(pamb=pamb, Tamb=Tamb, Chem_Ex= ch_ex_d.stand_ch_exe_dict('Ahrendts')
 ean.print_results()
 
 
+print('-----------------------------')
+print(120+so_to_cham.C_tot + fuel_to_chamber.C_tot - chamber_to_exhaust.C_tot )
 
 
 

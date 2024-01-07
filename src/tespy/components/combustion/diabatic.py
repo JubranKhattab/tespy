@@ -468,23 +468,30 @@ class DiabaticCombustionChamber(CombustionChamber):
         # unaffected chemical exergy
 
         # F principle
-        self.outl[0].c_chemical = self.inl[1].c_chemical
-        self.outl[0].c_mech = (self.inl[0].C_mech + self.inl[1].C_mech) / (self.inl[0].Ex_mech + self.inl[1].Ex_mech) * unit_c
+        m_c_chem = (self.inl[1].C_chemical / self.inl[1].ex_chemical) + (self.inl[0].C_chemical / self.inl[0].ex_chemical)
+        self.outl[0].c_chemical = m_c_chem / self.outl[0].m.val * unit_c
+        m_c_mech = (self.inl[1].C_mech / self.inl[1].ex_mech) + (self.inl[0].C_mech / self.inl[0].ex_mech)
+        self.outl[0].c_mech = m_c_mech / self.outl[0].m.val * unit_c
 
         # [outlets] costs streams associated with the fuel (power and [T, M, CH])
         self.outl[0].C_chemical = self.outl[0].c_chemical * self.outl[0].Ex_chemical * unit_C
         self.outl[0].C_mech = self.outl[0].c_mech * self.outl[0].Ex_mech * unit_C
 
         # fuel costs
-        self.C_F = (self.inl[0].C_chemical + self.inl[1].C_chemical) - self.outl[0].C_chemical
-        self.c_F = self.C_F / self.E_F * unit_c
+        self.C_F = (self.inl[0].C_chemical + self.inl[1].C_chemical) - self.outl[0].C_chemical + (self.inl[0].C_mech + self.inl[1].C_mech) - self.outl[0].C_mech
+        # self.c_F = self.C_F / self.E_F * unit_c
+        E_F_soll =  (self.inl[0].Ex_chemical + self.inl[1].Ex_chemical) - self.outl[0].Ex_chemical + (self.inl[0].Ex_mech + self.inl[1].Ex_mech) - self.outl[0].Ex_mech
+        self.c_F = self.C_F / E_F_soll * unit_c
 
         # product costs
         self.C_P = self.C_F + self.Z_costs
-        self.c_P = self.C_P / self.E_P * unit_c
+        # self.c_P = self.C_P / self.E_P * unit_c
+        E_P_soll = ( self.outl[0].Ex_therm - self.inl[0].Ex_therm - self.inl[1].Ex_therm)
+        self.c_P = self.C_P / E_P_soll * unit_c
 
         # [outlets] costs streams associated with the product with P principle (power and [T, M, CH])
-        self.outl[0].C_therm = self.c_P * self.outl[0].Ex_therm * unit_C
+        # self.outl[0].C_therm = self.c_P * self.outl[0].Ex_therm * unit_C
+        self.outl[0].C_therm = self.c_P * ( self.outl[0].Ex_therm - self.inl[0].Ex_therm - self.inl[1].Ex_therm)* unit_C + self.inl[0].C_therm + self.inl[1].C_therm
 
         # costs per exergy unit for outlets streams associated with the product (power and [T, M, CH])
         self.outl[0].c_therm = self.outl[0].C_therm / self.outl[0].Ex_therm * unit_c
@@ -505,23 +512,30 @@ class DiabaticCombustionChamber(CombustionChamber):
         # unaffected chemical exergy
 
         # F principle
-        self.outl[0].c_chemical = 0
-        self.outl[0].c_mech = (self.inl[0].C_mech + self.inl[1].C_mech) / (self.inl[0].Ex_mech + self.inl[1].Ex_mech) * unit_c
+        m_c_chem = (self.inl[1].C_chemical / self.inl[1].ex_chemical) + (self.inl[0].C_chemical / self.inl[0].ex_chemical)
+        self.outl[0].c_chemical = m_c_chem / self.outl[0].m.val * unit_c
+        m_c_mech = (self.inl[1].C_mech / self.inl[1].ex_mech) + (self.inl[0].C_mech / self.inl[0].ex_mech)
+        self.outl[0].c_mech = m_c_mech / self.outl[0].m.val * unit_c
 
         # [outlets] costs streams associated with the fuel (power and [T, M, CH])
         self.outl[0].C_chemical = self.outl[0].c_chemical * self.outl[0].Ex_chemical * unit_C
         self.outl[0].C_mech = self.outl[0].c_mech * self.outl[0].Ex_mech * unit_C
 
         # fuel costs
-        self.C_F = (self.inl[0].C_chemical + self.inl[1].C_chemical) - self.outl[0].C_chemical
-        self.c_F = self.C_F / self.E_F * unit_c
+        self.C_F = (self.inl[0].C_chemical + self.inl[1].C_chemical) - self.outl[0].C_chemical + (self.inl[0].C_mech + self.inl[1].C_mech) - self.outl[0].C_mech
+        # self.c_F = self.C_F / self.E_F * unit_c
+        E_F_soll = (self.inl[0].Ex_chemical + self.inl[1].Ex_chemical) - self.outl[0].Ex_chemical + (self.inl[0].Ex_mech + self.inl[1].Ex_mech) - self.outl[0].Ex_mech
+        self.c_F = self.C_F / E_F_soll * unit_c
 
         # product costs
         self.C_P = self.C_F + self.Z_costs
-        self.c_P = self.C_P / self.E_P * unit_c
+        # self.c_P = self.C_P / self.E_P * unit_c
+        E_P_soll = (self.outl[0].Ex_therm - self.inl[0].Ex_therm - self.inl[1].Ex_therm)
+        self.c_P = self.C_P / E_P_soll * unit_c
 
         # [outlets] costs streams associated with the product with P principle (power and [T, M, CH])
-        self.outl[0].C_therm = self.c_P * self.outl[0].Ex_therm * unit_C
+        # self.outl[0].C_therm = self.c_P * self.outl[0].Ex_therm * unit_C
+        self.outl[0].C_therm = self.c_P * (self.outl[0].Ex_therm - self.inl[0].Ex_therm - self.inl[1].Ex_therm) * unit_C + self.inl[0].C_therm + self.inl[1].C_therm
 
         # costs per exergy unit for outlets streams associated with the product (power and [T, M, CH])
         self.outl[0].c_therm = self.outl[0].C_therm / self.outl[0].Ex_therm * unit_c

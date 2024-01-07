@@ -73,8 +73,8 @@ generator_t.add_comps(
 
 
 #generator_v.set_attr(P=+3.48e8)
-nw.add_busses(generator)
-#nw.add_busses(generator_v, generator_t)
+#nw.add_busses(generator)
+nw.add_busses(generator_v, generator_t)
 # total 400 instead of mass flow as input
 
 # parameters
@@ -180,9 +180,11 @@ print("m Luft: ",round(so_to_comp.m.val ,2))
 print("m Mischung: ",round(split_to_tv1.m.val, 2))
 print("m brennstoff: ",round(fuel_to_sc.m.val,2))
 print("m T13: ",round(m_tit_to_exp.T.val,2))
-print("m P-Netto: ",round(-generator.P.val/100000000,2))
+print("m P-Netto: ",round(-generator.P.val/100000000,5))
 print("m T12: ",round(sc_to_m_tit.T.val,2))
 print("m 88 soll: ",12.82)
 print("m 88: ",round(c_88.m.val,2))
 print("m ABGAS: ",round(exp_to_exit.m.val,2))
 print("Abgas Zusammensetzung: ",dict(c14.inl[0].fluid.val))
+print("m P-Verdichter: ",round(-generator_v.P.val/100000000,5))
+print("m P-Turbine: ",round(-generator_t.P.val/100000000,5))

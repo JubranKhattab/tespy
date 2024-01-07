@@ -85,4 +85,4 @@ exe_eco_input = {'Splitter_Z': 5, 'source_stream_c': 10}
 ean.analyse(pamb=p_amp, Tamb=T_amb, Chem_Ex= ch_ex_d.stand_ch_exe_dict('Ahrendts'), Exe_Eco=exe_eco_input)
 ean.print_results()
 
-
+print(5 + in_splitter.C_tot - out_splitter.C_tot - out_splitter_2.C_tot )

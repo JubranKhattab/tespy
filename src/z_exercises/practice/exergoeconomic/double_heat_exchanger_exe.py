@@ -76,4 +76,4 @@ exe_eco_input = {'Heat Exchanger_Z': 50, 'Source Hot_c': 10, 'Source Cold_c': 10
 ean.analyse(pamb=p_amp, Tamb=T_amb, Chem_Ex= ch_ex_d.stand_ch_exe_dict('Ahrendts'), Exe_Eco=exe_eco_input)
 ean.print_results()
 
-
+# print(50 + hot_in_2_hx.C_tot + cold_in_2_hx.C_tot - hot_hx_2_out.C_tot - cold_hx_2_out.C_tot)
