@@ -2,6 +2,8 @@ from tespy.tools.helpers import mass_flow
 from CoolProp.CoolProp import PropsSI as PSI
 import pandas as pd
 import plotly.graph_objects as go
+import json
+
 
 #exhaust_m = {'Ar': 0.012457896607378277, 'C3H8': 0, 'CH4': 0, 'CO2': 0.06886347922097558, 'H2': 0, 'H2O': 0.05583016579437184, 'N2': 0.7351524120278958,
 #           'O2': 0.12753952306032723, 'ethane': 0, 'n-Butane': 0, 'n-Hexane': 9.739355621090751e-05, 'n-Pentane': 5.9087691508375354e-05}
@@ -50,11 +52,11 @@ def sat_p(T):
 #     print(comp.strip("'"))
 costs_c= {
     "Source 1_c": 0,
-    "Source 10_c": 8,
+    "Source 10_c": 15,
     # "Source 14_c": 112,
     "Source 35_c": 10,
-    "Source 71_c": 10,
-    "Source 91_c": 1,
+    "Source 71_c": 1,
+    "Source 91_c": 0,
     "temp_func": True,
 }
 
@@ -192,36 +194,15 @@ def c_sp_vw(ready_list, df):
 # c_chemical = 10 random
 
 
-def export_tables(nw):
-    # df = ...
-    # with open('output_table.tex', 'w') as f:
-    #     f.write(df)
-
-    # if connections:
-        nw.connection_data = nw.connection_data.sort_index()
-
-    # if components:
-        df = nw.component_data.copy()
-
-
-    # if busses:
-        df = nw.bus_data.copy()
-
-
-    #if aggregation:
-        df = nw.aggregation_data.copy()
-
-
-    # if network:
-            #nw.network_data.to_frame().transpose()
-
-    # if groups:
-        df = nw.group_data.copy()
-
-
 def sankey_diagram(ean):
-    path = 'C:/TU-Berlin/01_Masterarbeit/bilder_tespy/'
+    path = 'C:/TU-Berlin/01_Masterarbeit/excel_read/'
     links, nodes = ean.generate_plotly_sankey_input()
+    with open(path+'links.json', 'w') as pickle_file:
+        json.dump(links, pickle_file)
+
+    with open(path+'nodes.json', 'w') as json_file:
+        json.dump(nodes, json_file)
+
     fig = go.Figure(go.Sankey(
         arrangement="snap",
         node={
@@ -236,143 +217,186 @@ def sankey_diagram(ean):
 
 fmt_dict = {
     'E_F': {
-        'unit': ' in MW',
+        'unit': ' [MW]',
         'float': '{:.2f}',
         'factor': 1e6,
     },
     'E_P': {
-        'unit': ' in MW',
+        'unit': '  [MW]',
         'float': '{:.2f}',
         'factor': 1e6,
     },
     'E_D': {
-        'unit': ' in MW',
+        'unit': '  [MW]',
         'float': '{:.2f}',
         'factor': 1e6,
     },
     'E_L': {
-        'unit': ' in MW',
+        'unit': '  [MW]',
         'float': '{:.2f}',
         'factor': 1e6,
     },
     'epsilon': {
-        'unit': ' in %',
+        'unit': '  [%]',
         'float': '{:.1f}',
         'factor': 1 / 100,
         'markdown_header': 'ε'
     },
     'y_Dk': {
-        'unit': ' in %',
+        'unit': '  [%]',
         'float': '{:.1f}',
         'factor': 1 / 100
     },
     'y*_Dk': {
-        'unit': ' in %',
+        'unit': '  [%]',
         'float': '{:.1f}',
         'factor': 1 / 100
     },
+    'group': {
+
+    },
+    'C_F': {
+        'unit': '  [€/h]',
+        'float': '{:.2f}',
+        'factor': 1
+    },
+    'C_P': {
+        'unit': '  [€/h]',
+        'float': '{:.2f}',
+        'factor': 1
+    },
+    'C_D': {
+        'unit': '  [€/h]',
+        'float': '{:.2f}',
+        'factor': 1
+    },
+    'Z_costs': {
+        'unit': '  [€/h]',
+        'float': '{:.2f}',
+        'factor': 1
+    },
+    'c_F': {
+        'unit': '  [€/GJ]',
+        'float': '{:.2f}',
+        'factor': 1
+    },
+    'c_P': {
+        'unit': '  [€/GJ]',
+        'float': '{:.2f}',
+        'factor': 1
+    },
+    'r': {
+        'unit': '  [%]',
+        'float': '{:.2f}',
+        'factor': 1
+    },
+    'f': {
+        'unit': '  [%]',
+        'float': '{:.2f}',
+        'factor': 1
+    },
     'e_T': {
-        'unit': ' in kJ/kg',
+        'unit': '  [kJ/kg]',
         'float': '{:.1f}',
         'factor': 1000
     },
     'e_M': {
-        'unit': ' in kJ/kg',
+        'unit': '  [kJ/kg]',
         'float': '{:.1f}',
         'factor': 1000
     },
     'e_PH': {
-        'unit': ' in kJ/kg',
+        'unit': '  [kJ/kg]',
         'float': '{:.1f}',
         'factor': 1000
     },
     'e_CH': {
-        'unit': ' in kJ/kg',
+        'unit': '  [kJ/kg]',
         'float': '{:.1f}',
         'factor': 1000
     },
     'E_T': {
-        'unit': ' in MW',
+        'unit': '  [MW]',
         'float': '{:.2f}',
         'factor': 1e6
     },
     'E_M': {
-        'unit': ' in MW',
+        'unit': '  [MW]',
         'float': '{:.2f}',
         'factor': 1e6
     },
     'E_PH': {
-        'unit': ' in MW',
+        'unit': '  [MW]',
         'float': '{:.2f}',
         'factor': 1e6
     },
     'E_CH': {
-        'unit': ' in MW',
+        'unit': '  [MW]',
         'float': '{:.2f}',
         'factor': 1e6
     },
     'c_PH': {
-        'unit': ' in €/GJ',
+        'unit': '  [€/GJ]',
         'float': '{:.2f}',
         'factor': 1
     },
     'c_T': {
-        'unit': ' in €/GJ',
+        'unit': '  [€/GJ]',
         'float': '{:.2f}',
         'factor': 1
     },
     'c_M': {
-        'unit': ' in €/GJ',
+        'unit': '  [€/GJ]',
         'float': '{:.2f}',
         'factor': 1
     },
     'c_CH': {
-        'unit': ' in €/GJ',
+        'unit': '  €/GJ',
         'float': '{:.2f}',
         'factor': 1
     },
     'c_tot': {
-        'unit': ' in €/GJ',
+        'unit': '  [€/GJ]',
         'float': '{:.2f}',
         'factor': 1
     },
     'C_PH': {
-        'unit': ' in €/h',
+        'unit': '  [€/h]',
         'float': '{:.2f}',
         'factor': 1
     },
     'C_T': {
-        'unit': ' in €/h',
+        'unit': '  [€/h]',
         'float': '{:.2f}',
         'factor': 1
     },
     'C_M': {
-        'unit': ' in €/h',
+        'unit': '  [€/h]',
         'float': '{:.2f}',
         'factor': 1
     },
     'C_CH': {
-        'unit': ' in €/h',
+        'unit': '  [€/h]',
         'float': '{:.2f}',
         'factor': 1
     },
     'C_tot': {
-        'unit': ' in €/h',
+        'unit': '  [€/h]',
         'float': '{:.2f}',
         'factor': 1
     },
     'T': {
-        'unit': ' in °C',
+        'unit': '  [°C]',
         'float': '{:.1f}',
         'factor': 1
     },
     'p': {
-        'unit': ' in bar',
+        'unit': '  [bar]',
         'float': '{:.2f}',
         'factor': 1
     },
     'h': {
-        'unit': ' in kJ/kg',
+        'unit': '  [kJ/kg]',
         'float': '{:.1f}',
         'factor': 1
     }
@@ -385,6 +409,7 @@ def result_to_markdown(df, filename,  df_type, prefix=''):
         df['numeric_part'] = pd.to_numeric(df['numeric_part'], errors='coerce')
         df = df.sort_values(by='numeric_part')
         df = df.drop(columns='numeric_part')
+    df.drop(columns='group', errors='ignore', inplace=True)
     for col in df.columns:
         fmt = fmt_dict[col]['float']
         if prefix == 'δ ':
@@ -405,3 +430,23 @@ def result_to_markdown(df, filename,  df_type, prefix=''):
         filename, disable_numparse=True,
         colalign=['left'] + ['right' for _ in df.columns]
     )
+    path = 'C:/TU-Berlin/01_Masterarbeit/excel_read/results_df/'
+    df.to_excel(path+df_type+'.xlsx')
+
+
+def power_costs(nw):
+    wanted_id = ['P1', 'P2', 'P3', 'P4', 'DT1', 'DT2', 'DT3', 'DT4', 'DT5', 'V', 'EXP']
+    comps_df = nw.comps
+    comp_bus = comps_df[comps_df.index.isin(wanted_id)]['object'].tolist()
+    columns = ['power', 'c', 'C']
+    df = pd.DataFrame(columns=columns)
+    for c in comp_bus:
+        row = {'power': c.exe_eco['E_streams_tot']['E_Power'],
+               'c':c.exe_eco['c_per_unit']['c_Power'] ,
+               'C':c.exe_eco['C_streams']['C_Power'] }
+        index_value = c.label
+        df = df.append(pd.Series(row, name=index_value))
+
+    path = 'C:/TU-Berlin/01_Masterarbeit/excel_read/'
+    df.to_excel(path + 'results_df/power_costs' + '.xlsx')
+    print('end')

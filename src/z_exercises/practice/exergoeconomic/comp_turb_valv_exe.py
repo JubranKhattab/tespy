@@ -61,14 +61,14 @@ turbine_nw.add_busses(power, hot_steam)
 turbine_nw.solve(mode='design')
 turbine_nw.print_results()
 
-exe_eco_input = {'Compressor_c': 50,'Source_c': 10, 'Turbine_Z': 50, 'Compressor_Z': 40, 'Valve_Z': 10}
+exe_eco_input = {'Compressor_c': 500,'Source_c': 10, 'Turbine_Z': 500, 'Compressor_Z': 40, 'Valve_Z': 10}
 # define ena and assign as P, F, L
 ean = ExergyAnalysis(turbine_nw, E_P=[power], E_F=[hot_steam], E_L=[], internal_busses=[])
 ean.analyse(pamb=pamb, Tamb=Tamb, Chem_Ex= ch_ex_d.stand_ch_exe_dict('Ahrendts'), Exe_Eco=exe_eco_input)
 ean.print_results()
 
 
-
+print(500 + compr_2_turb.C_tot - turb_2_valv.C_tot - turb.exe_eco['C_streams']['C_Power'])
 
 
 

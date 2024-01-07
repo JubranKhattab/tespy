@@ -466,8 +466,8 @@ nw.add_busses(heat_in_bus, condenser_bus, district_heat_bus,
               start_bus,  end_bus, heat_loss_bus)
 
 product = [g_dt1, g_dt2, g_dt3, g_dt4, g_dt5, district_heat_bus, g_exp]
-fuel = [g_p1, g_p2, g_p3, g_p4,air_bus, heat_in_bus,heat_out_bus, start_bus, end_bus, g_v]
-loss = [condenser_bus]
+fuel = [g_p1, g_p2, g_p3, g_p4,air_bus, heat_in_bus, start_bus, end_bus, g_v]
+loss = [condenser_bus, heat_out_bus]
 
 
 #nw.solve(mode="design")
@@ -485,11 +485,17 @@ exe_eco_input = {**exe_eco_input, **costs_iteration}
 ean.analyse(pamb=pamb, Tamb=Tamb,  Chem_Ex= ch_ex_d.stand_ch_exe_dict('Szargut1988'), Exe_Eco=exe_eco_input)
 ean.print_results()
 #h_f.export_tables(ean)
-#h_f.sankey_diagram(ean)
+h_f.sankey_diagram(ean)
 
-network_result = ean.network_data.to_frame().transpose()
-ean.aggregation_data.drop(columns=['group'], inplace=True)
-path = 'C:/TU-Berlin/01_Masterarbeit/excel_read/'
-h_f.result_to_markdown(ean.aggregation_data, path+'components_result', 'components')
-h_f.result_to_markdown(ean.connection_data, path+'connections_result', 'connections')
-h_f.result_to_markdown(network_result, path+'network_result', 'network')
+
+
+# h_f.power_costs(nw)
+# network_result = ean.network_data.to_frame().transpose()
+# ean.aggregation_data.drop(columns=['group'], inplace=True)
+# path = 'C:/TU-Berlin/01_Masterarbeit/excel_read/'
+# nw.results['Connection'].to_excel(path+'results_df/thermodynamics_conn'+'.xlsx')
+# h_f.result_to_markdown(ean.component_data, path+'components_result', 'components')
+# h_f.result_to_markdown(ean.connection_data, path+'connections_result', 'connections')
+# h_f.result_to_markdown(ean.aggregation_data, path+'components_bus_result_agg', 'components_bus_agg')
+# h_f.result_to_markdown(network_result, path+'network_result', 'network')
+
